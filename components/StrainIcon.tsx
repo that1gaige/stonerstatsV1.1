@@ -33,8 +33,9 @@ export function StrainIcon({ params, size = 64, baseLeafSource, fillSeedUUID, te
     ? (hashStringInt(fillSeedUUID) % 360)
     : (palette.base_hue + palette.accent_hue_shift_deg + 360) % 360;
 
-  const tintColor = `hsl(${uuidHue}, ${palette.saturation_pct}%, ${palette.lightness_pct}%)`;
-  const strokeColor = `hsl(${uuidHue}, ${palette.saturation_pct}%, ${Math.max(0, palette.lightness_pct - 20)}%)`;
+  const leafHue = (palette.base_hue + 360) % 360;
+  const tintColor = `hsl(${leafHue}, ${palette.saturation_pct}%, ${palette.lightness_pct}%)`;
+  const strokeColor = `hsl(${leafHue}, ${palette.saturation_pct}%, ${Math.max(0, palette.lightness_pct - 20)}%)`;
 
   const radius = Math.round(size / 2);
 
@@ -44,7 +45,8 @@ export function StrainIcon({ params, size = 64, baseLeafSource, fillSeedUUID, te
   const backgroundStops: GradientStop[] = (() => {
     if (!gradient.enabled) return [];
     const sorted = [...gradient.stops].sort((a, b) => a.position_pct - b.position_pct);
-    const filtered = sorted.filter((s) => Math.abs(((s.hue - uuidHue + 540) % 360) - 180) > 8);
+    const leafHue = (palette.base_hue + 360) % 360;
+    const filtered = sorted.filter((s) => Math.abs(((s.hue - leafHue + 540) % 360) - 180) > 8);
     return filtered.length > 0 ? filtered : sorted.slice(1);
   })();
 

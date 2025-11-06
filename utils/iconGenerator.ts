@@ -76,13 +76,37 @@ function extractDescriptors(name: string, terpProfile?: TerpProfile[]): string[]
   return descriptors;
 }
 
+const MULTICOLOR_KEYWORDS: Record<string, number[]> = {
+  apple: [110, 5],
+  mango: [36, 55],
+  sunrise: [35, 15, 52],
+  sunset: [15, 35, 52],
+  rainbow: [0, 35, 55, 120, 200, 260, 300],
+};
+
+function isMultiColorWord(word: string): boolean {
+  return Object.prototype.hasOwnProperty.call(MULTICOLOR_KEYWORDS, word.toLowerCase());
+}
+
+function getMultiColorHues(word: string): number[] {
+  const list = MULTICOLOR_KEYWORDS[word.toLowerCase()];
+  return list ? [...list] : [];
+}
+
 function enhanceColorWithDescriptor(
   baseHue: number,
   baseSat: number,
   baseLight: number,
   descriptor: string
 ): { hue: number; saturation: number; lightness: number } {
-  const descriptorData = getDescriptorColors(descriptor);
+  const desc = descriptor.toLowerCase().trim();
+  if (desc.startsWith("virtual:hue:")) {
+    const parts = desc.split(":");
+    const hueVal = Number(parts[2]);
+    return { hue: (hueVal + 360) % 360, saturation: baseSat, lightness: baseLight };
+  }
+
+  const descriptorData = getDescriptorColors(desc);
   if (!descriptorData) {
     return { hue: baseHue, saturation: baseSat, lightness: baseLight };
   }
@@ -90,14 +114,13 @@ function enhanceColorWithDescriptor(
   let saturation = Math.max(0, Math.min(100, baseSat + descriptorData.saturationBoost));
   let lightness = Math.max(0, Math.min(100, baseLight + descriptorData.lightnessBoost));
 
-  const d = descriptor.toLowerCase().trim();
-  if (d === 'white' || d === 'silver' || d === 'platinum' || d === 'frost' || d === 'snow' || d === 'widow') {
+  if (desc === 'white' || desc === 'silver' || desc === 'platinum' || desc === 'frost' || desc === 'snow' || desc === 'widow') {
     saturation = Math.min(saturation, 8);
     lightness = Math.max(lightness, 88);
-  } else if (d === 'black' || d === 'midnight' || d === 'night') {
+  } else if (desc === 'black' || desc === 'midnight' || desc === 'night') {
     saturation = Math.min(saturation, 12);
     lightness = Math.min(lightness, 18);
-  } else if (d === 'gray' || d === 'grey' || d === 'smoke' || d === 'cloud' || d === 'cloudy') {
+  } else if (desc === 'gray' || desc === 'grey' || desc === 'smoke' || desc === 'cloud' || desc === 'cloudy') {
     saturation = Math.min(saturation, 16);
     lightness = Math.max(48, Math.min(lightness, 62));
   }
@@ -131,7 +154,7 @@ function generateGradient(
   digest: number[]
 ): GradientConfig {
   const descriptorCount = descriptors.length;
-  if (descriptorCount < 2) {
+  if (descriptorCount < 1) {
     return {
       enabled: false,
       type: "linear",
@@ -141,17 +164,17 @@ function generateGradient(
       stops: [],
     };
   }
-  const gradientColorCount = Math.min(5, descriptorCount);
+  const gradientColorCount = Math.min(6, descriptorCount);
   const stops: GradientStop[] = [];
   for (let i = 0; i < gradientColorCount; i++) {
     const descriptor = descriptors[i];
     const descBytes = simpleHashBytes(`${descriptor}`);
-    let hue = enhanceColorWithDescriptor(baseHue, baseSat, baseLight, descriptor).hue;
-    let saturation = mapByteToRange(descBytes[1] % 256, 55, 85);
-    let lightness = mapByteToRange(descBytes[2] % 256, 35, 60);
+    const hue = enhanceColorWithDescriptor(baseHue, baseSat, baseLight, descriptor).hue;
+    const saturation = mapByteToRange(descBytes[1] % 256, 55, 85);
+    const lightness = mapByteToRange(descBytes[2] % 256, 35, 60);
     const isTopColor = i === 0;
-    const alpha = isTopColor ? mapByteToRange(descBytes[3] % 256, 85, 100) : mapByteToRange(descBytes[3] % 256, 60, 95);
-    const position = (i / (gradientColorCount - 1)) * 100;
+    const alpha = isTopColor ? mapByteToRange(descBytes[3] % 256, 70, 90) : mapByteToRange(descBytes[3] % 256, 50, 85);
+    const position = (i / Math.max(1, gradientColorCount - 1)) * 100;
     stops.push({
       position_pct: position,
       hue: Math.round(hue),
@@ -185,22 +208,42 @@ export function generateIconParams(
   const seed = createIconSeedFromId(normalized, strainId);
   const digest = simpleHashBytes(seed, 14);
 
-  const descriptors = extractDescriptors(name, terpProfile);
   const baseSat = mapByteToRange(digest[10] % 256, 50, 85);
   const baseLight = mapByteToRange(digest[11] % 256, 30, 55);
 
-  let dominantHue: number;
+  const rawDescriptors = extractDescriptors(name, terpProfile);
+
+  let workingDescriptors: string[] = [];
+  let dominantHue = neutralHueFromName(normalized);
   let finalSat = baseSat;
   let finalLight = baseLight;
 
-  if (descriptors.length > 0) {
-    const primary = descriptors[0];
-    const enhanced = enhanceColorWithDescriptor(neutralHueFromName(normalized), baseSat, baseLight, primary);
-    dominantHue = Math.round(enhanced.hue);
-    finalSat = enhanced.saturation;
-    finalLight = enhanced.lightness;
+  if (rawDescriptors.length > 0) {
+    const primaryWord = rawDescriptors[0].toLowerCase();
+    if (isMultiColorWord(primaryWord)) {
+      const hues = getMultiColorHues(primaryWord);
+      const pickIdx = hashStringInt(seed) % hues.length;
+      dominantHue = hues[pickIdx];
+      const secondaryHues = hues.filter((_, i) => i !== pickIdx);
+      workingDescriptors.push(...secondaryHues.map(h => `virtual:hue:${h}`));
+    } else {
+      const enhanced = enhanceColorWithDescriptor(dominantHue, baseSat, baseLight, primaryWord);
+      dominantHue = Math.round(enhanced.hue);
+      finalSat = enhanced.saturation;
+      finalLight = enhanced.lightness;
+    }
 
-    for (const d of descriptors) {
+    for (let i = 1; i < rawDescriptors.length; i++) {
+      const w = rawDescriptors[i].toLowerCase();
+      if (isMultiColorWord(w)) {
+        const hues = getMultiColorHues(w);
+        workingDescriptors.push(...hues.map(h => `virtual:hue:${h}`));
+      } else {
+        workingDescriptors.push(w);
+      }
+    }
+
+    for (const d of rawDescriptors) {
       const dl = d.toLowerCase();
       if (dl === 'white' || dl === 'silver' || dl === 'platinum' || dl === 'frost' || dl === 'snow' || dl === 'widow') {
         finalSat = Math.min(finalSat, 8);
@@ -213,12 +256,14 @@ export function generateIconParams(
         finalLight = Math.max(48, Math.min(finalLight, 62));
       }
     }
-  } else {
-    dominantHue = neutralHueFromName(normalized);
   }
 
+  const uuidHue = hashStringInt(strainId) % 360;
+  const contrastedUuidHue = (uuidHue + 180 + ((digest[9] % 60) - 30)) % 360;
+  workingDescriptors.push(`virtual:hue:${contrastedUuidHue}`);
+
   const palette: ColorPalette = {
-    base_hue: dominantHue,
+    base_hue: Math.round(dominantHue),
     accent_hue_shift_deg: ((digest[9] % 24) - 12),
     saturation_pct: Math.round(finalSat),
     lightness_pct: Math.round(finalLight),
@@ -226,8 +271,8 @@ export function generateIconParams(
     glow_variant_lightness_delta: 20,
   };
 
-  let gradient = generateGradient(descriptors, dominantHue, finalSat, finalLight, digest);
-  const hasNeutral = descriptors.some(d => {
+  let gradient = generateGradient(workingDescriptors, dominantHue, finalSat, finalLight, digest);
+  const hasNeutral = rawDescriptors.some(d => {
     const w = d.toLowerCase();
     return w === 'white' || w === 'silver' || w === 'platinum' || w === 'frost' || w === 'snow' || w === 'black' || w === 'midnight' || w === 'night' || w === 'gray' || w === 'grey' || w === 'smoke' || w === 'cloud' || w === 'cloudy';
   });
@@ -247,12 +292,12 @@ export function generateIconParams(
       outer_glow_enabled: (digest[6] % 2) === 0,
       outer_glow_intensity_pct: Math.round(mapByteToRange(digest[7] % 256, 10, 40)),
       texture_noise_seed: (digest[8] ?? 0) / 255,
-      background_hue: dominantHue,
+      background_hue: Math.round(dominantHue),
       palette,
       gradient,
     },
-    detectedKeywords: descriptors,
-    dominantHue,
+    detectedKeywords: rawDescriptors,
+    dominantHue: Math.round(dominantHue),
   };
 }
 
