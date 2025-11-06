@@ -95,16 +95,16 @@ export function StrainIcon({ params, size = 64, baseLeafSource, fillSeedUUID, te
         testID="strain-icon-stroke"
         source={leafSource}
         contentFit="contain"
+        tintColor={strokeColor}
         style={[
           styles.leafStroke,
           {
             width: strokeSize,
             height: strokeSize,
-            tintColor: strokeColor,
             backgroundColor: 'transparent',
             filter:
               Platform.OS === 'web'
-                ? (`drop-shadow(0 0 0 ${strokeColor}) drop-shadow(0 0 ${Math.max(1, Math.round(stroke_px))}px ${strokeColor})` as unknown as any)
+                ? ("drop-shadow(0 0 0 " + strokeColor + ") drop-shadow(0 0 " + Math.max(1, Math.round(stroke_px)) + "px " + strokeColor + ")" as unknown as any)
                 : undefined,
           },
         ]}
@@ -115,19 +115,19 @@ export function StrainIcon({ params, size = 64, baseLeafSource, fillSeedUUID, te
         testID="strain-icon-leaf"
         source={leafSource}
         contentFit="contain"
+        tintColor={tintColor}
         style={[
           styles.leaf,
           {
             width: leafSize,
             height: leafSize,
-            tintColor,
             shadowColor: tintColor,
             shadowOpacity: outer_glow_enabled ? Math.min(0.9, outer_glow_intensity_pct / 80) : 0,
             shadowRadius: outer_glow_enabled ? Math.max(4, Math.round(size * 0.16)) : 0,
             shadowOffset: { width: 0, height: 0 },
             filter:
               Platform.OS === 'web' && outer_glow_enabled
-                ? (`drop-shadow(0 0 ${Math.round(size * 0.22)}px ${tintColor})` as unknown as any)
+                ? ("drop-shadow(0 0 " + Math.round(size * 0.22) + "px " + tintColor + ")" as unknown as any)
                 : undefined,
             backgroundColor: 'transparent',
           },
