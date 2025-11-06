@@ -6,7 +6,7 @@ import { createStrain } from "@/utils/iconGenerator";
 import { writeStrainJSON, ensureStrainsDirectory } from "@/utils/strainJSONWriter";
 import { getStrainLibrarySummary } from "@/utils/listStrainsInFolder";
 import { DEMO_STRAINS_DATA } from "@/utils/seedDemoStrains";
-import { importFromSources } from "@/utils/importStrains";
+
 
 const STORAGE_KEYS = {
   USER: "stonerstats_user",
@@ -123,35 +123,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [strains]);
 
-  const importStrainsNow = useCallback(async (): Promise<{ added: number; skipped: number; errors: number; total: number; } | null> => {
-    try {
-      const currentRaw = await AsyncStorage.getItem(STORAGE_KEYS.STRAINS);
-      const current: Strain[] = currentRaw ? JSON.parse(currentRaw).map((s: Strain) => ({ ...s, created_at: new Date(s.created_at) })) : strains;
-      const maxTotal = 300;
-      if (current.length >= maxTotal) {
-        return { added: 0, skipped: 0, errors: 0, total: current.length };
-      }
-      const { created, skipped, errors } = await importFromSources(current);
-      const toAdd = created.slice(0, Math.max(0, maxTotal - current.length));
-      if (toAdd.length > 0) {
-        const merged = [...current, ...toAdd];
-        setStrains(merged);
-        await AsyncStorage.setItem(STORAGE_KEYS.STRAINS, JSON.stringify(merged));
-        for (const s of toAdd) {
-          try {
-            await writeStrainJSON(s);
-          } catch (e) {
-            console.error('Import write JSON failed for', s.name, e);
-          }
-        }
-        await getStrainLibrarySummary();
-      }
-      return { added: toAdd.length, skipped, errors, total: (current.length + toAdd.length) };
-    } catch (e) {
-      console.error('[ImportNow] failed', e);
-      return null;
-    }
-  }, [strains]);
+
 
   const addSession = useCallback(async (session: SmokeSession) => {
     const updated = [session, ...sessions];
@@ -173,8 +145,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     addStrain,
     addSession,
     updateUser,
-    importStrainsNow,
-  }), [user, strains, sessions, isLoading, addStrain, addSession, updateUser, importStrainsNow]);
+  }), [user, strains, sessions, isLoading, addStrain, addSession, updateUser]);
 });
 
 function createDemoStrains(): Strain[] {
