@@ -42,14 +42,47 @@ function normalizeTerpenes(terps?: string[]): TerpProfile[] | undefined {
 
 export type ImportSource = {
   id: string;
-  url: string;
+  path: string;
   parser: (json: any) => ExternalStrain[];
 };
+
+function buildMirrors(path: string): string[] {
+  const normalized = path.replace(/^\/+/, "");
+  return [
+    `https://cdn.jsdelivr.net/gh/${normalized}`,
+    `https://raw.githubusercontent.com/${normalized.replace('@main/', 'main/')}`,
+    `https://githack.com/${normalized.replace('@main/', '/blob/main/')}`,
+  ];
+}
+
+async function fetchJsonWithFallback(path: string): Promise<any> {
+  const urls = buildMirrors(path);
+  let lastErr: unknown = null;
+  for (const url of urls) {
+    try {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 12000);
+      const resp = await fetch(url, { mode: 'cors', signal: controller.signal } as RequestInit);
+      clearTimeout(t);
+      if (!resp.ok) {
+        console.warn(`[Import] Mirror responded ${resp.status} for ${url}`);
+        lastErr = new Error(`HTTP ${resp.status}`);
+        continue;
+      }
+      return await resp.json();
+    } catch (e) {
+      console.warn(`[Import] Mirror failed for ${url}`, e);
+      lastErr = e;
+      continue;
+    }
+  }
+  throw lastErr ?? new Error('All mirrors failed');
+}
 
 export const PUBLIC_SOURCES: ImportSource[] = [
   {
     id: "open-strains-1",
-    url: "https://raw.githubusercontent.com/public-datasets-rork/cannabis-strains/main/strains-basic.json",
+    path: "public-datasets-rork/cannabis-strains@main/strains-basic.json",
     parser(json: any): ExternalStrain[] {
       if (!Array.isArray(json)) return [];
       return json.map((item) => ({
@@ -69,7 +102,7 @@ export const PUBLIC_SOURCES: ImportSource[] = [
   },
   {
     id: "open-strains-2",
-    url: "https://raw.githubusercontent.com/public-datasets-rork/cannabis-strains/main/strains-terpenes.json",
+    path: "public-datasets-rork/cannabis-strains@main/strains-terpenes.json",
     parser(json: any): ExternalStrain[] {
       if (!Array.isArray(json)) return [];
       return json.map((item) => ({
@@ -85,7 +118,7 @@ export const PUBLIC_SOURCES: ImportSource[] = [
   },
   {
     id: "open-strains-3",
-    url: "https://raw.githubusercontent.com/public-datasets-rork/cannabis-strains/main/strains-extended.json",
+    path: "public-datasets-rork/cannabis-strains@main/strains-extended.json",
     parser(json: any): ExternalStrain[] {
       if (!Array.isArray(json)) return [];
       return json.map((row) => ({
@@ -105,7 +138,7 @@ export const PUBLIC_SOURCES: ImportSource[] = [
   },
   {
     id: "open-strains-4",
-    url: "https://raw.githubusercontent.com/public-datasets-rork/cannabis-strains/main/strains-more.json",
+    path: "public-datasets-rork/cannabis-strains@main/strains-more.json",
     parser(json: any): ExternalStrain[] {
       if (!json) return [];
       const arr = Array.isArray(json) ? json : (Array.isArray(json.items) ? json.items : []);
@@ -139,13 +172,7 @@ export async function importFromSources(existing: Strain[], sources: ImportSourc
 
   for (const source of sources) {
     try {
-      const resp = await fetch(source.url);
-      if (!resp.ok) {
-        console.warn(`[Import] ${source.id} failed: ${resp.status}`);
-        errors++;
-        continue;
-      }
-      const json = await resp.json();
+      const json = await fetchJsonWithFallback(source.path);
       const rows = source.parser(json);
 
       for (const row of rows) {
