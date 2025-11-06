@@ -1,5 +1,6 @@
 import { Strain, StrainType, TerpProfile } from "@/types";
 import { createStrain } from "@/utils/iconGenerator";
+import { DEMO_STRAINS_DATA } from "@/utils/seedDemoStrains";
 
 export type ExternalStrain = {
   name: string;
@@ -47,12 +48,31 @@ export type ImportSource = {
 };
 
 function buildMirrors(path: string): string[] {
-  const normalized = path.replace(/^\/+/, "");
-  return [
-    `https://cdn.jsdelivr.net/gh/${normalized}`,
-    `https://raw.githubusercontent.com/${normalized.replace('@main/', 'main/')}`,
-    `https://githack.com/${normalized.replace('@main/', '/blob/main/')}`,
-  ];
+  const cleaned = path.replace(/^\/+/, "");
+  const atIdx = cleaned.indexOf("@");
+  if (atIdx === -1) {
+    return [
+      `https://cdn.jsdelivr.net/gh/${cleaned}`,
+    ];
+  }
+  const before = cleaned.slice(0, atIdx); // owner/repo
+  const after = cleaned.slice(atIdx + 1); // branch/path
+  const slashIdx = after.indexOf("/");
+  const branch = slashIdx === -1 ? after : after.slice(0, slashIdx);
+  const filePath = slashIdx === -1 ? "" : after.slice(slashIdx + 1);
+  const [owner, repo] = before.split("/");
+
+  const urls: string[] = [];
+  if (owner && repo && branch && filePath) {
+    urls.push(
+      `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${filePath}`,
+      `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filePath}`,
+      `https://raw.githack.com/${owner}/${repo}/${branch}/${filePath}`,
+    );
+  } else {
+    urls.push(`https://cdn.jsdelivr.net/gh/${cleaned}`);
+  }
+  return urls;
 }
 
 async function fetchJsonWithFallback(path: string): Promise<any> {
@@ -60,10 +80,8 @@ async function fetchJsonWithFallback(path: string): Promise<any> {
   let lastErr: unknown = null;
   for (const url of urls) {
     try {
-      const controller = new AbortController();
-      const t = setTimeout(() => controller.abort(), 12000);
-      const resp = await fetch(url, { mode: 'cors', signal: controller.signal } as RequestInit);
-      clearTimeout(t);
+      const controller = new AbortSignalController();
+      const resp = await timedFetch(url, controller, 15000);
       if (!resp.ok) {
         console.warn(`[Import] Mirror responded ${resp.status} for ${url}`);
         lastErr = new Error(`HTTP ${resp.status}`);
@@ -77,6 +95,26 @@ async function fetchJsonWithFallback(path: string): Promise<any> {
     }
   }
   throw lastErr ?? new Error('All mirrors failed');
+}
+
+class AbortSignalController {
+  controller: AbortController;
+  timeoutId: number | null;
+  constructor() {
+    this.controller = new AbortController();
+    this.timeoutId = null;
+  }
+  get signal() { return this.controller.signal; }
+  abort() { this.controller.abort(); if (this.timeoutId) { clearTimeout(this.timeoutId); this.timeoutId = null; } }
+}
+
+async function timedFetch(url: string, controller: AbortSignalController, ms: number): Promise<Response> {
+  controller.timeoutId = setTimeout(() => controller.abort(), ms) as unknown as number;
+  try {
+    return await fetch(url, { signal: controller.signal } as RequestInit);
+  } finally {
+    if (controller.timeoutId) clearTimeout(controller.timeoutId);
+  }
 }
 
 export const PUBLIC_SOURCES: ImportSource[] = [
@@ -161,6 +199,10 @@ export type ImportResult = {
   errors: number;
 };
 
+function localFallbackRows(): ExternalStrain[] {
+  return DEMO_STRAINS_DATA.map(d => ({ name: d.name, type: d.type, terpenes: d.terp_profile as unknown as string[], description: d.description ?? undefined }));
+}
+
 export async function importFromSources(existing: Strain[], sources: ImportSource[] = PUBLIC_SOURCES): Promise<ImportResult> {
   const created: Strain[] = [];
   let skipped = 0;
@@ -203,6 +245,26 @@ export async function importFromSources(existing: Strain[], sources: ImportSourc
       console.error(`[Import] Source ${source.id} error`, e);
       errors++;
     }
+  }
+
+  if (created.length === 0) {
+    try {
+      const rows = localFallbackRows();
+      for (const row of rows) {
+        const name = row.name;
+        if (!name || existingByName.has(name.toLowerCase())) { skipped++; continue; }
+        const t = normalizeType(row.type ?? undefined) ?? "hybrid";
+        const terps = normalizeTerpenes(row.terpenes);
+        const strain = createStrain(name, t, {
+          terp_profile: terps,
+          description: row.description ?? undefined,
+          source: "developer",
+        });
+        created.push(strain);
+        existingByName.set(name.toLowerCase(), true);
+      }
+      errors = 0;
+    } catch {}
   }
 
   return { created, skipped, errors };
