@@ -39,7 +39,7 @@ export default function LibraryScreen() {
   const [showAdd, setShowAdd] = useState<boolean>(false);
   const [newName, setNewName] = useState<string>("");
   const [newType, setNewType] = useState<StrainType>("hybrid");
-  const [newBreeder, setNewBreeder] = useState<string>("");
+
   const [newDesc, setNewDesc] = useState<string>("");
   const [newTerps, setNewTerps] = useState<Set<TerpProfile>>(new Set());
 
@@ -137,7 +137,6 @@ export default function LibraryScreen() {
     try {
       const created = createStrain(name, newType, {
         terp_profile: Array.from(newTerps),
-        breeder: newBreeder.trim() || undefined,
         description: newDesc.trim() || undefined,
         created_by: "user_default",
         source: "user",
@@ -147,7 +146,7 @@ export default function LibraryScreen() {
       setShowAdd(false);
       setNewName("");
       setNewType("hybrid");
-      setNewBreeder("");
+
       setNewDesc("");
       setNewTerps(new Set());
     } catch (e) {
@@ -269,17 +268,6 @@ export default function LibraryScreen() {
             </View>
           </View>
 
-          <View style={styles.formRow}>
-            <Text style={styles.label}>Breeder (optional)</Text>
-            <TextInput
-              testID="add-breeder"
-              style={styles.input}
-              placeholder="Who bred it?"
-              placeholderTextColor="#666"
-              value={newBreeder}
-              onChangeText={setNewBreeder}
-            />
-          </View>
 
           <View style={styles.formRow}>
             <Text style={styles.label}>Description (optional)</Text>
