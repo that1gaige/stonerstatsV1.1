@@ -123,18 +123,21 @@ function enhanceColorWithDescriptor(
   let saturation = Math.max(0, Math.min(100, baseSat + descriptorData.saturationBoost));
   let lightness = Math.max(0, Math.min(100, baseLight + descriptorData.lightnessBoost));
 
-  if (desc === 'white' || desc === 'silver' || desc === 'platinum' || desc === 'frost' || desc === 'snow' || desc === 'widow') {
+  if (desc === 'white' || desc === 'silver' || desc === 'platinum' || desc === 'frost' || desc === 'snow') {
     saturation = Math.min(saturation, 5);
     lightness = Math.max(lightness, 92);
   } else if (desc === 'black' || desc === 'midnight') {
-    saturation = Math.min(saturation, 5);
-    lightness = Math.min(lightness, 8);
+    saturation = 0;
+    lightness = 5;
   } else if (desc === 'night') {
     saturation = Math.min(saturation, 15);
-    lightness = Math.min(lightness, 15);
+    lightness = Math.min(lightness, 12);
   } else if (desc === 'gray' || desc === 'grey' || desc === 'smoke' || desc === 'cloud' || desc === 'cloudy') {
     saturation = Math.min(saturation, 12);
     lightness = Math.max(45, Math.min(lightness, 60));
+  } else if (desc === 'widow') {
+    saturation = Math.min(saturation, 8);
+    lightness = Math.max(lightness, 90);
   }
 
   return { hue, saturation, lightness };
@@ -263,30 +266,50 @@ export function generateIconParams(
     
     for (const d of rawDescriptors) {
       const dl = d.toLowerCase();
-      if (dl === 'white' || dl === 'silver' || dl === 'platinum' || dl === 'frost' || dl === 'snow' || dl === 'widow') {
+      if (dl === 'white' || dl === 'silver' || dl === 'platinum' || dl === 'frost' || dl === 'snow') {
         hasWhite = true;
         finalSat = Math.min(finalSat, 5);
         finalLight = Math.max(finalLight, 92);
       } else if (dl === 'black' || dl === 'midnight') {
         hasBlack = true;
-        finalSat = Math.min(finalSat, 5);
-        finalLight = Math.min(finalLight, 8);
+        finalSat = 0;
+        finalLight = 5;
       } else if (dl === 'night') {
         finalSat = Math.min(finalSat, 15);
-        finalLight = Math.min(finalLight, 15);
+        finalLight = Math.min(finalLight, 12);
       } else if (dl === 'gray' || dl === 'grey' || dl === 'smoke' || dl === 'cloud' || dl === 'cloudy') {
         finalSat = Math.min(finalSat, 12);
         finalLight = Math.max(45, Math.min(finalLight, 60));
+      } else if (dl === 'widow') {
+        hasWhite = true;
+        finalSat = Math.min(finalSat, 8);
+        finalLight = Math.max(finalLight, 90);
       }
     }
     
-    if ((hasWhite || hasBlack) && rawDescriptors.length > 1) {
+    if (hasWhite && rawDescriptors.length > 1) {
       const extraHues: number[] = [];
       for (let i = 1; i < rawDescriptors.length; i++) {
         const w = rawDescriptors[i].toLowerCase();
-        if (w !== 'white' && w !== 'silver' && w !== 'platinum' && w !== 'frost' && w !== 'snow' && w !== 'widow' && w !== 'black' && w !== 'midnight' && w !== 'night') {
+        if (w !== 'white' && w !== 'silver' && w !== 'platinum' && w !== 'frost' && w !== 'snow' && w !== 'widow') {
           const desc = getDescriptorColors(w);
           if (desc && desc.category === 'color') {
+            extraHues.push(desc.hue);
+          }
+        }
+      }
+      if (extraHues.length > 0) {
+        workingDescriptors.push(...extraHues.map(h => `virtual:hue:${h}`));
+      }
+    }
+    
+    if (hasBlack && rawDescriptors.length > 1) {
+      const extraHues: number[] = [];
+      for (let i = 1; i < rawDescriptors.length; i++) {
+        const w = rawDescriptors[i].toLowerCase();
+        if (w !== 'black' && w !== 'midnight' && w !== 'night') {
+          const desc = getDescriptorColors(w);
+          if (desc && (desc.category === 'color' || desc.category === 'flavor')) {
             extraHues.push(desc.hue);
           }
         }
@@ -313,10 +336,16 @@ export function generateIconParams(
   let gradient = generateGradient(workingDescriptors, dominantHue, finalSat, finalLight, digest);
   const hasOnlyNeutral = rawDescriptors.length === 1 && rawDescriptors.some(d => {
     const w = d.toLowerCase();
-    return w === 'white' || w === 'silver' || w === 'platinum' || w === 'frost' || w === 'snow' || w === 'black' || w === 'midnight' || w === 'night' || w === 'gray' || w === 'grey' || w === 'smoke' || w === 'cloud' || w === 'cloudy';
+    return w === 'white' || w === 'silver' || w === 'platinum' || w === 'frost' || w === 'snow' || w === 'gray' || w === 'grey' || w === 'smoke' || w === 'cloud' || w === 'cloudy';
   });
   if (hasOnlyNeutral) {
     gradient = { enabled: false, type: 'linear', angle_deg: 0, blend_mode: 'overlay', opacity_pct: 0, stops: [] };
+  }
+  
+  const hasBlackPrimary = rawDescriptors.length >= 1 && rawDescriptors[0].toLowerCase() === 'black';
+  if (hasBlackPrimary) {
+    finalSat = 0;
+    finalLight = 5;
   }
 
   return {
