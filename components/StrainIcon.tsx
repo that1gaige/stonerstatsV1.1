@@ -24,6 +24,9 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
 
   const radius = Math.round(size / 2);
 
+  const localLeaf = require("@/assets/images/icontemp.png");
+  const leafSource = baseLeafUri && baseLeafUri.length > 0 ? { uri: baseLeafUri } : localLeaf;
+
   return (
     <View
       testID={testID ?? "strain-icon"}
@@ -51,7 +54,7 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
 
       <Image
         testID="strain-icon-leaf"
-        source={{ uri: baseLeafUri ?? DEFAULT_LEAF_URI }}
+        source={leafSource}
         resizeMode="contain"
         style={[
           styles.leaf,
@@ -84,8 +87,6 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
     </View>
   );
 }
-
-const DEFAULT_LEAF_URI = "https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/yg1e91psfje0oyd9rdoeh";
 
 const styles = StyleSheet.create({
   gradientBg: {
