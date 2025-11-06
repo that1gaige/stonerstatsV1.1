@@ -83,6 +83,14 @@ const MULTICOLOR_KEYWORDS: Record<string, MultiColorConfig> = {
   sunrise: { primary: 35, extras: [15, 52] },
   sunset: { primary: 15, extras: [35, 52] },
   rainbow: { primary: 0, extras: [35, 55, 120, 200, 260, 300] },
+  northern: { primary: 130, extras: [200, 280, 55] },
+  lights: { primary: 55, extras: [35, 15, 200] },
+  space: { primary: 270, extras: [220, 300, 50] },
+  galaxy: { primary: 270, extras: [210, 300, 50] },
+  silver: { primary: 210, extras: [0, 230, 270] },
+  alien: { primary: 110, extras: [300, 200, 55] },
+  gold: { primary: 50, extras: [30, 15, 5] },
+  golden: { primary: 50, extras: [30, 15, 5] },
 };
 
 function isMultiColorWord(word: string): boolean {

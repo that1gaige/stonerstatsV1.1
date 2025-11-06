@@ -50,9 +50,9 @@ export function StrainIcon({ params, size = 64, baseLeafSource, fillSeedUUID, te
     return filtered.length > 0 ? filtered : sorted.slice(1);
   })();
 
-  const leafSize = Math.floor(size * 0.92);
+  const leafSize = Math.floor(size * 0.96);
   const strokeSize = Math.min(
-    Math.floor(size * 0.98),
+    Math.floor(size * 0.99),
     leafSize + Math.max(2, Math.round(stroke_px * 2))
   );
 
@@ -113,6 +113,53 @@ export function StrainIcon({ params, size = 64, baseLeafSource, fillSeedUUID, te
         transition={0}
       />
 
+      {outer_glow_enabled && Platform.OS !== 'web' && (
+        <>
+          <Image
+            testID="strain-icon-glow-1"
+            source={leafSource}
+            contentFit="contain"
+            tintColor={tintColor}
+            style={{
+              position: 'absolute',
+              width: Math.round(leafSize * 1.06),
+              height: Math.round(leafSize * 1.06),
+              opacity: Math.min(0.35, outer_glow_intensity_pct / 120),
+              backgroundColor: 'transparent',
+            }}
+            transition={0}
+          />
+          <Image
+            testID="strain-icon-glow-2"
+            source={leafSource}
+            contentFit="contain"
+            tintColor={tintColor}
+            style={{
+              position: 'absolute',
+              width: Math.round(leafSize * 1.12),
+              height: Math.round(leafSize * 1.12),
+              opacity: Math.min(0.22, outer_glow_intensity_pct / 140),
+              backgroundColor: 'transparent',
+            }}
+            transition={0}
+          />
+          <Image
+            testID="strain-icon-glow-3"
+            source={leafSource}
+            contentFit="contain"
+            tintColor={tintColor}
+            style={{
+              position: 'absolute',
+              width: Math.round(leafSize * 1.18),
+              height: Math.round(leafSize * 1.18),
+              opacity: Math.min(0.12, outer_glow_intensity_pct / 160),
+              backgroundColor: 'transparent',
+            }}
+            transition={0}
+          />
+        </>
+      )}
+
       <Image
         testID="strain-icon-leaf"
         source={leafSource}
@@ -123,13 +170,9 @@ export function StrainIcon({ params, size = 64, baseLeafSource, fillSeedUUID, te
           {
             width: leafSize,
             height: leafSize,
-            shadowColor: tintColor,
-            shadowOpacity: outer_glow_enabled ? Math.min(0.9, outer_glow_intensity_pct / 80) : 0,
-            shadowRadius: outer_glow_enabled ? Math.max(4, Math.round(size * 0.16)) : 0,
-            shadowOffset: { width: 0, height: 0 },
             filter:
               Platform.OS === 'web' && outer_glow_enabled
-                ? ("drop-shadow(0 0 " + Math.round(size * 0.22) + "px " + tintColor + ")" as unknown as any)
+                ? ("drop-shadow(0 0 " + Math.round(size * 0.24) + "px " + tintColor + ")" as unknown as any)
                 : undefined,
             backgroundColor: 'transparent',
           },
