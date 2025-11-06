@@ -1,5 +1,6 @@
-import { Image, Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { IconRenderParams } from "@/types";
 
 interface StrainIconProps {
@@ -45,17 +46,18 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={[styles.gradientBg, { width: size, height: size, borderRadius: radius }]}
+              pointerEvents="none"
             />
           );
         })()
       ) : (
-        <View style={[styles.solidBg, { width: size, height: size, borderRadius: radius, backgroundColor: `hsla(${baseHue}, ${palette.saturation_pct}%, ${Math.min(95, palette.lightness_pct + 25)}%, 0.18)` }]} />
+        <View style={[styles.solidBg, { width: size, height: size, borderRadius: radius, backgroundColor: `hsla(${baseHue}, ${palette.saturation_pct}%, ${Math.min(95, palette.lightness_pct + 25)}%, 0.18)` }]} pointerEvents="none" />
       )}
 
       <Image
         testID="strain-icon-leaf"
         source={leafSource}
-        resizeMode="contain"
+        contentFit="contain"
         style={[
           styles.leaf,
           {
@@ -66,9 +68,11 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
             shadowOpacity: outer_glow_enabled ? Math.min(0.9, outer_glow_intensity_pct / 80) : 0,
             shadowRadius: outer_glow_enabled ? Math.max(3, size * 0.12) : 0,
             shadowOffset: { width: 0, height: 0 },
-            filter: Platform.OS === 'web' && outer_glow_enabled ? `drop-shadow(0 0 ${Math.round(size * 0.18)}px ${tintColor})` as any : undefined,
+            filter: Platform.OS === 'web' && outer_glow_enabled ? (`drop-shadow(0 0 ${Math.round(size * 0.18)}px ${tintColor})` as unknown as any) : undefined,
+            backgroundColor: 'transparent',
           },
         ]}
+        transition={100}
       />
 
       <View
