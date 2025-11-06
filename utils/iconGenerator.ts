@@ -76,21 +76,22 @@ function extractDescriptors(name: string, terpProfile?: TerpProfile[]): string[]
   return descriptors;
 }
 
-const MULTICOLOR_KEYWORDS: Record<string, number[]> = {
-  apple: [110, 5],
-  mango: [36, 55],
-  sunrise: [35, 15, 52],
-  sunset: [15, 35, 52],
-  rainbow: [0, 35, 55, 120, 200, 260, 300],
+type MultiColorConfig = { primary: number; extras: number[] };
+const MULTICOLOR_KEYWORDS: Record<string, MultiColorConfig> = {
+  apple: { primary: 110, extras: [5] },
+  mango: { primary: 36, extras: [55, 5, 120] },
+  sunrise: { primary: 35, extras: [15, 52] },
+  sunset: { primary: 15, extras: [35, 52] },
+  rainbow: { primary: 0, extras: [35, 55, 120, 200, 260, 300] },
 };
 
 function isMultiColorWord(word: string): boolean {
   return Object.prototype.hasOwnProperty.call(MULTICOLOR_KEYWORDS, word.toLowerCase());
 }
 
-function getMultiColorHues(word: string): number[] {
-  const list = MULTICOLOR_KEYWORDS[word.toLowerCase()];
-  return list ? [...list] : [];
+function getMultiColorConfig(word: string): MultiColorConfig | null {
+  const cfg = MULTICOLOR_KEYWORDS[word.toLowerCase()];
+  return cfg ? { primary: cfg.primary, extras: [...cfg.extras] } : null;
 }
 
 function enhanceColorWithDescriptor(
@@ -221,11 +222,11 @@ export function generateIconParams(
   if (rawDescriptors.length > 0) {
     const primaryWord = rawDescriptors[0].toLowerCase();
     if (isMultiColorWord(primaryWord)) {
-      const hues = getMultiColorHues(primaryWord);
-      const pickIdx = hashStringInt(seed) % hues.length;
-      dominantHue = hues[pickIdx];
-      const secondaryHues = hues.filter((_, i) => i !== pickIdx);
-      workingDescriptors.push(...secondaryHues.map(h => `virtual:hue:${h}`));
+      const cfg = getMultiColorConfig(primaryWord);
+      if (cfg) {
+        dominantHue = cfg.primary;
+        workingDescriptors.push(...cfg.extras.map(h => `virtual:hue:${h}`));
+      }
     } else {
       const enhanced = enhanceColorWithDescriptor(dominantHue, baseSat, baseLight, primaryWord);
       dominantHue = Math.round(enhanced.hue);
@@ -236,8 +237,11 @@ export function generateIconParams(
     for (let i = 1; i < rawDescriptors.length; i++) {
       const w = rawDescriptors[i].toLowerCase();
       if (isMultiColorWord(w)) {
-        const hues = getMultiColorHues(w);
-        workingDescriptors.push(...hues.map(h => `virtual:hue:${h}`));
+        const cfg = getMultiColorConfig(w);
+        if (cfg) {
+          const hues = [cfg.primary, ...cfg.extras];
+          workingDescriptors.push(...hues.map(h => `virtual:hue:${h}`));
+        }
       } else {
         workingDescriptors.push(w);
       }
