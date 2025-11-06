@@ -12,7 +12,6 @@ const STORAGE_KEYS = {
   USER: "stonerstats_user",
   STRAINS: "stonerstats_strains",
   SESSIONS: "stonerstats_sessions",
-  BULK_IMPORTED: "stonerstats_bulk_import_done",
 };
 
 const DEFAULT_USER: User = {
@@ -46,11 +45,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const loadData = async () => {
     try {
-      const [userData, strainsData, sessionsData, bulkFlag] = await Promise.all([
+      const [userData, strainsData, sessionsData] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.USER),
         AsyncStorage.getItem(STORAGE_KEYS.STRAINS),
         AsyncStorage.getItem(STORAGE_KEYS.SESSIONS),
-        AsyncStorage.getItem(STORAGE_KEYS.BULK_IMPORTED),
       ]);
 
       if (userData) {
@@ -90,32 +88,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
         }
       }
 
-      try {
-        const needBulk = (!bulkFlag || bulkFlag !== '1');
-        if (needBulk) {
-          const current = await AsyncStorage.getItem(STORAGE_KEYS.STRAINS);
-          const currentStrains: Strain[] = current ? JSON.parse(current).map((s: Strain) => ({ ...s, created_at: new Date(s.created_at) })) : [];
-          const maxTotal = 300;
-          if (currentStrains.length < maxTotal) {
-            const { created, skipped, errors } = await importFromSources(currentStrains);
-            console.log(`[BulkImport] created=${created.length} skipped=${skipped} errors=${errors}`);
-            const toAdd = created.slice(0, Math.max(0, maxTotal - currentStrains.length));
-            if (toAdd.length > 0) {
-              const merged = [...currentStrains, ...toAdd];
-              setStrains(merged);
-              await AsyncStorage.setItem(STORAGE_KEYS.STRAINS, JSON.stringify(merged));
-              for (const s of toAdd) {
-                try { await writeStrainJSON(s); } catch (e) { console.error('Bulk write JSON failed for', s.name, e); }
-              }
-            }
-            await AsyncStorage.setItem(STORAGE_KEYS.BULK_IMPORTED, '1');
-          } else {
-            await AsyncStorage.setItem(STORAGE_KEYS.BULK_IMPORTED, '1');
-          }
-        }
-      } catch (e) {
-        console.error('[BulkImport] failed', e);
-      }
 
       if (sessionsData) {
         const parsed = JSON.parse(sessionsData);
@@ -143,12 +115,41 @@ export const [AppProvider, useApp] = createContextHook(() => {
     const updated = [...strains, strain];
     setStrains(updated);
     await AsyncStorage.setItem(STORAGE_KEYS.STRAINS, JSON.stringify(updated));
-    
     try {
       await writeStrainJSON(strain);
       console.log(`Generated JSON file for strain: ${strain.name}`);
     } catch (error) {
       console.error(`Failed to generate JSON for strain ${strain.name}:`, error);
+    }
+  }, [strains]);
+
+  const importStrainsNow = useCallback(async (): Promise<{ added: number; skipped: number; errors: number; total: number; } | null> => {
+    try {
+      const currentRaw = await AsyncStorage.getItem(STORAGE_KEYS.STRAINS);
+      const current: Strain[] = currentRaw ? JSON.parse(currentRaw).map((s: Strain) => ({ ...s, created_at: new Date(s.created_at) })) : strains;
+      const maxTotal = 300;
+      if (current.length >= maxTotal) {
+        return { added: 0, skipped: 0, errors: 0, total: current.length };
+      }
+      const { created, skipped, errors } = await importFromSources(current);
+      const toAdd = created.slice(0, Math.max(0, maxTotal - current.length));
+      if (toAdd.length > 0) {
+        const merged = [...current, ...toAdd];
+        setStrains(merged);
+        await AsyncStorage.setItem(STORAGE_KEYS.STRAINS, JSON.stringify(merged));
+        for (const s of toAdd) {
+          try {
+            await writeStrainJSON(s);
+          } catch (e) {
+            console.error('Import write JSON failed for', s.name, e);
+          }
+        }
+        await getStrainLibrarySummary();
+      }
+      return { added: toAdd.length, skipped, errors, total: (current.length + toAdd.length) };
+    } catch (e) {
+      console.error('[ImportNow] failed', e);
+      return null;
     }
   }, [strains]);
 
@@ -172,7 +173,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     addStrain,
     addSession,
     updateUser,
-  }), [user, strains, sessions, isLoading, addStrain, addSession, updateUser]);
+    importStrainsNow,
+  }), [user, strains, sessions, isLoading, addStrain, addSession, updateUser, importStrainsNow]);
 });
 
 function createDemoStrains(): Strain[] {

@@ -31,10 +31,11 @@ const TERPS: TerpProfile[] = [
 ];
 
 export default function LibraryScreen() {
-  const { strains, addStrain } = useApp();
+  const { strains, addStrain, importStrainsNow } = useApp();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<Set<StrainType>>(new Set());
   const [bannerText, setBannerText] = useState<string | null>(null);
+  const [importing, setImporting] = useState<boolean>(false);
 
   const [showAdd, setShowAdd] = useState<boolean>(false);
   const [newName, setNewName] = useState<string>("");
@@ -154,17 +155,49 @@ export default function LibraryScreen() {
     }
   };
 
+  const onImportNow = async () => {
+    if (importing) return;
+    try {
+      setImporting(true);
+      const res = await importStrainsNow();
+      if (!res) {
+        setBannerText("Import failed");
+        return;
+      }
+      if (res.added > 0) {
+        setBannerText(`Imported ${res.added} strains (total ${res.total})`);
+      } else {
+        setBannerText("No new strains to import");
+      }
+    } catch (e) {
+      setBannerText("Import failed");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <Search size={20} color="#666" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search strains..."
-          placeholderTextColor="#666"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+      <View style={styles.topRow}>
+        <View style={[styles.searchContainer, { flex: 1 }]}>
+          <Search size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search strains..."
+            placeholderTextColor="#666"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+        <TouchableOpacity
+          testID="import-button"
+          accessibilityRole="button"
+          onPress={onImportNow}
+          style={[styles.importPill, importing && styles.importPillDisabled]}
+          disabled={importing}
+        >
+          <Text style={styles.importPillText}>{importing ? "Importing" : "Import"}</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -306,13 +339,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#0a0a0a",
   },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 12,
+  },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#1a1a1a",
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -324,6 +362,21 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: "#fff",
+  },
+  importPill: {
+    backgroundColor: "#1a1a1a",
+    borderWidth: 2,
+    borderColor: "#333",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  importPillDisabled: {
+    opacity: 0.6,
+  },
+  importPillText: {
+    color: "#e5e7eb",
+    fontWeight: "700" as const,
   },
   filterContainer: {
     maxHeight: 50,
