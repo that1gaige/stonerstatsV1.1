@@ -35,8 +35,11 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
     return filtered.length > 0 ? filtered : sorted.slice(1);
   })();
 
-  const leafSize = Math.floor(size * 0.72);
-  const strokeSize = Math.min(Math.floor(size * 0.86), leafSize + Math.max(2, Math.round(stroke_px * 2)));
+  const leafSize = Math.floor(size * 0.92);
+  const strokeSize = Math.min(
+    Math.floor(size * 0.98),
+    leafSize + Math.max(2, Math.round(stroke_px * 2))
+  );
 
   return (
     <View
@@ -61,7 +64,18 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
           );
         })()
       ) : (
-        <View style={[styles.solidBg, { width: size, height: size, borderRadius: radius, backgroundColor: `hsla(${baseHue}, ${palette.saturation_pct}%, ${Math.min(95, palette.lightness_pct + 25)}%, 0.18)` }]} pointerEvents="none" />
+        <View
+          style={[
+            styles.solidBg,
+            {
+              width: size,
+              height: size,
+              borderRadius: radius,
+              backgroundColor: `hsla(${baseHue}, ${palette.saturation_pct}%, ${Math.min(95, palette.lightness_pct + 25)}%, 0.18)`,
+            },
+          ]}
+          pointerEvents="none"
+        />
       )}
 
       <Image
@@ -75,6 +89,11 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
             height: strokeSize,
             tintColor: strokeColor,
             backgroundColor: 'transparent',
+            // web-specific crisp stroke fallback via drop-shadow outlining
+            filter:
+              Platform.OS === 'web'
+                ? (`drop-shadow(0 0 0 ${strokeColor}) drop-shadow(0 0 ${Math.max(1, Math.round(stroke_px))}px ${strokeColor})` as unknown as any)
+                : undefined,
           },
         ]}
         transition={0}
@@ -92,16 +111,17 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
             tintColor,
             shadowColor: tintColor,
             shadowOpacity: outer_glow_enabled ? Math.min(0.9, outer_glow_intensity_pct / 80) : 0,
-            shadowRadius: outer_glow_enabled ? Math.max(3, size * 0.12) : 0,
+            shadowRadius: outer_glow_enabled ? Math.max(4, Math.round(size * 0.16)) : 0,
             shadowOffset: { width: 0, height: 0 },
-            filter: Platform.OS === 'web' && outer_glow_enabled ? (`drop-shadow(0 0 ${Math.round(size * 0.18)}px ${tintColor})` as unknown as any) : undefined,
+            filter:
+              Platform.OS === 'web' && outer_glow_enabled
+                ? (`drop-shadow(0 0 ${Math.round(size * 0.22)}px ${tintColor})` as unknown as any)
+                : undefined,
             backgroundColor: 'transparent',
           },
         ]}
         transition={100}
       />
-
-
     </View>
   );
 }
