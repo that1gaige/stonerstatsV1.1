@@ -5,7 +5,9 @@ const ICON_INDICA = require("@/assets/images/iconindica.png");
 const ICON_SATIVA = require("@/assets/images/iconsativa.png");
 const ICON_HYBRID_A = require("@/assets/images/iconhybrid.png");
 const ICON_HYBRID_B = require("@/assets/images/iconhybrid2.png");
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { importFromSources } from "@/utils/importStrains";
 import {
   View,
   Text,
@@ -15,14 +17,35 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { Search } from "lucide-react-native";
+import { Search, DownloadCloud } from "lucide-react-native";
 
 const STRAIN_TYPES: StrainType[] = ["indica", "sativa", "hybrid"];
 
 export default function LibraryScreen() {
-  const { strains } = useApp();
+  const { strains, addStrain } = useApp();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<Set<StrainType>>(new Set());
+  const [importSummary, setImportSummary] = useState<string | null>(null);
+
+  const importMutation = useMutation({
+    mutationFn: async () => await importFromSources(strains),
+    onSuccess: async (res) => {
+      for (const s of res.created) {
+        await addStrain(s);
+      }
+      setImportSummary(`Imported ${res.created.length}, skipped ${res.skipped}${res.errors ? ", errors " + res.errors : ""}`);
+    },
+    onError: () => {
+      setImportSummary("Import failed");
+    },
+  });
+
+  useEffect(() => {
+    if (importSummary) {
+      const t = setTimeout(() => setImportSummary(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [importSummary]);
 
   const filteredStrains = useMemo(() => {
     let filtered = strains;
@@ -137,6 +160,12 @@ export default function LibraryScreen() {
         ))}
       </ScrollView>
 
+      {importSummary && (
+        <View style={styles.banner}>
+          <Text style={styles.bannerText}>{importSummary}</Text>
+        </View>
+      )}
+
       <FlatList
         data={filteredStrains}
         renderItem={renderStrainItem}
@@ -151,6 +180,17 @@ export default function LibraryScreen() {
           </View>
         }
       />
+
+      <TouchableOpacity
+        accessibilityRole="button"
+        testID="import-button"
+        style={[styles.fab, importMutation.isPending && styles.fabDisabled]}
+        onPress={() => importMutation.mutate()}
+        disabled={importMutation.isPending}
+      >
+        <DownloadCloud color="#0a0a0a" size={20} />
+        <Text style={styles.fabText}>{importMutation.isPending ? "Importing..." : "Import"}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -274,5 +314,42 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 15,
     color: "#444",
+  },
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 28,
+    backgroundColor: "#4ade80",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    shadowColor: "#4ade80",
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  fabDisabled: {
+    opacity: 0.6,
+  },
+  fabText: {
+    color: "#0a0a0a",
+    fontWeight: "800" as const,
+  },
+  banner: {
+    backgroundColor: "#16331f",
+    borderColor: "#235c37",
+    borderWidth: 1,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 10,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  bannerText: {
+    color: "#8ef0b1",
+    fontWeight: "700" as const,
   },
 });
