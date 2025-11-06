@@ -1,7 +1,7 @@
 import { Platform, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
-import { IconRenderParams } from "@/types";
+import { IconRenderParams, GradientStop } from "@/types";
 
 interface StrainIconProps {
   params: IconRenderParams;
@@ -28,14 +28,24 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
   const localLeaf = require("@/assets/images/icontemp.png");
   const leafSource = baseLeafUri && baseLeafUri.length > 0 ? { uri: baseLeafUri } : localLeaf;
 
+  const backgroundStops: GradientStop[] = (() => {
+    if (!gradient.enabled) return [];
+    const sorted = [...gradient.stops].sort((a, b) => a.position_pct - b.position_pct);
+    const filtered = sorted.filter((s) => Math.abs(((s.hue - baseHue + 540) % 360) - 180) > 8);
+    return filtered.length > 0 ? filtered : sorted.slice(1);
+  })();
+
+  const leafSize = Math.floor(size * 0.72);
+  const strokeSize = Math.min(Math.floor(size * 0.86), leafSize + Math.max(2, Math.round(stroke_px * 2)));
+
   return (
     <View
       testID={testID ?? "strain-icon"}
       style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
     >
-      {gradient.enabled ? (
+      {gradient.enabled && backgroundStops.length > 0 ? (
         (() => {
-          const colorsArr = gradient.stops.map(s => `hsla(${s.hue}, ${s.saturation_pct}%, ${s.lightness_pct}%, ${s.alpha_pct / 100})`);
+          const colorsArr = backgroundStops.map(s => `hsla(${s.hue}, ${s.saturation_pct}%, ${s.lightness_pct}%, ${s.alpha_pct / 100})`);
           const first = colorsArr[0] ?? tintColor;
           const last = colorsArr[colorsArr.length - 1] ?? tintColor;
           const rest = colorsArr.slice(1, Math.max(1, colorsArr.length - 1));
@@ -55,14 +65,30 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
       )}
 
       <Image
+        testID="strain-icon-stroke"
+        source={leafSource}
+        contentFit="contain"
+        style={[
+          styles.leafStroke,
+          {
+            width: strokeSize,
+            height: strokeSize,
+            tintColor: strokeColor,
+            backgroundColor: 'transparent',
+          },
+        ]}
+        transition={0}
+      />
+
+      <Image
         testID="strain-icon-leaf"
         source={leafSource}
         contentFit="contain"
         style={[
           styles.leaf,
           {
-            width: Math.floor(size * 0.72),
-            height: Math.floor(size * 0.72),
+            width: leafSize,
+            height: leafSize,
             tintColor,
             shadowColor: tintColor,
             shadowOpacity: outer_glow_enabled ? Math.min(0.9, outer_glow_intensity_pct / 80) : 0,
@@ -75,19 +101,7 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
         transition={100}
       />
 
-      <View
-        pointerEvents="none"
-        style={[
-          styles.stroke,
-          {
-            width: Math.floor(size * 0.76),
-            height: Math.floor(size * 0.76),
-            borderRadius: Math.floor(size * 0.38),
-            borderWidth: Math.max(1, Math.round(stroke_px)),
-            borderColor: strokeColor,
-          },
-        ]}
-      />
+
     </View>
   );
 }
@@ -106,7 +120,7 @@ const styles = StyleSheet.create({
   leaf: {
     zIndex: 2,
   },
-  stroke: {
+  leafStroke: {
     position: 'absolute',
     zIndex: 1,
   },
