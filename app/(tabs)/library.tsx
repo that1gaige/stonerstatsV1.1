@@ -81,7 +81,7 @@ export default function LibraryScreen() {
 
   const renderStrainItem = ({ item }: { item: Strain }) => (
     <View style={styles.strainItem}>
-      <StrainIcon params={item.icon_render_params} size={72} baseLeafSource={baseLeafFor(item)} />
+      <StrainIcon params={item.icon_render_params} size={72} baseLeafSource={baseLeafFor(item)} fillSeedUUID={item.strain_id} />
       <View style={styles.strainInfo}>
         <Text style={styles.strainName}>{item.name}</Text>
         <View style={styles.strainMeta}>

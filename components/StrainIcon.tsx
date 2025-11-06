@@ -7,10 +7,20 @@ interface StrainIconProps {
   params: IconRenderParams;
   size?: number;
   baseLeafSource?: ImageSourcePropType;
+  fillSeedUUID?: string;
   testID?: string;
 }
 
-export function StrainIcon({ params, size = 64, baseLeafSource, testID }: StrainIconProps) {
+function hashStringInt(str: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  return hash >>> 0;
+}
+
+export function StrainIcon({ params, size = 64, baseLeafSource, fillSeedUUID, testID }: StrainIconProps) {
   const {
     stroke_px,
     outer_glow_enabled,
@@ -19,9 +29,12 @@ export function StrainIcon({ params, size = 64, baseLeafSource, testID }: Strain
     gradient,
   } = params;
 
-  const baseHue = (palette.base_hue + palette.accent_hue_shift_deg + 360) % 360;
-  const tintColor = `hsl(${baseHue}, ${palette.saturation_pct}%, ${palette.lightness_pct}%)`;
-  const strokeColor = `hsl(${palette.base_hue}, ${palette.saturation_pct}%, ${Math.max(0, palette.lightness_pct - 20)}%)`;
+  const uuidHue = typeof fillSeedUUID === 'string' && fillSeedUUID.length > 0
+    ? (hashStringInt(fillSeedUUID) % 360)
+    : (palette.base_hue + palette.accent_hue_shift_deg + 360) % 360;
+
+  const tintColor = `hsl(${uuidHue}, ${palette.saturation_pct}%, ${palette.lightness_pct}%)`;
+  const strokeColor = `hsl(${uuidHue}, ${palette.saturation_pct}%, ${Math.max(0, palette.lightness_pct - 20)}%)`;
 
   const radius = Math.round(size / 2);
 
@@ -31,7 +44,7 @@ export function StrainIcon({ params, size = 64, baseLeafSource, testID }: Strain
   const backgroundStops: GradientStop[] = (() => {
     if (!gradient.enabled) return [];
     const sorted = [...gradient.stops].sort((a, b) => a.position_pct - b.position_pct);
-    const filtered = sorted.filter((s) => Math.abs(((s.hue - baseHue + 540) % 360) - 180) > 8);
+    const filtered = sorted.filter((s) => Math.abs(((s.hue - uuidHue + 540) % 360) - 180) > 8);
     return filtered.length > 0 ? filtered : sorted.slice(1);
   })();
 
@@ -71,7 +84,7 @@ export function StrainIcon({ params, size = 64, baseLeafSource, testID }: Strain
               width: size,
               height: size,
               borderRadius: radius,
-              backgroundColor: `hsla(${baseHue}, ${palette.saturation_pct}%, ${Math.min(95, palette.lightness_pct + 25)}%, 0.18)`,
+              backgroundColor: `hsla(${uuidHue}, ${palette.saturation_pct}%, ${Math.min(95, palette.lightness_pct + 25)}%, 0.18)`,
             },
           ]}
           pointerEvents="none"
@@ -89,7 +102,6 @@ export function StrainIcon({ params, size = 64, baseLeafSource, testID }: Strain
             height: strokeSize,
             tintColor: strokeColor,
             backgroundColor: 'transparent',
-            // web-specific crisp stroke fallback via drop-shadow outlining
             filter:
               Platform.OS === 'web'
                 ? (`drop-shadow(0 0 0 ${strokeColor}) drop-shadow(0 0 ${Math.max(1, Math.round(stroke_px))}px ${strokeColor})` as unknown as any)

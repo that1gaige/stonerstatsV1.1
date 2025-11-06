@@ -67,6 +67,7 @@ export default function FeedScreen() {
                 ? ICON_SATIVA
                 : pickHybridIcon(strain.icon_seed || strain.name)
             }
+            fillSeedUUID={strain.strain_id}
           />
           <View style={styles.strainDetails}>
             <Text style={styles.strainName}>{strain.name}</Text>
