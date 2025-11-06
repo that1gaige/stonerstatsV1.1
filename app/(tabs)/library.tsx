@@ -1,13 +1,12 @@
 import { useApp } from "@/contexts/AppContext";
-import { Strain, StrainType } from "@/types";
+import { Strain, StrainType, TerpProfile } from "@/types";
 import { StrainIcon } from "@/components/StrainIcon";
+import { createStrain } from "@/utils/iconGenerator";
 const ICON_INDICA = require("@/assets/images/iconindica.png");
 const ICON_SATIVA = require("@/assets/images/iconsativa.png");
 const ICON_HYBRID_A = require("@/assets/images/iconhybrid.png");
 const ICON_HYBRID_B = require("@/assets/images/iconhybrid2.png");
 import { useState, useMemo, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { importFromSources } from "@/utils/importStrains";
 import {
   View,
   Text,
@@ -16,36 +15,40 @@ import {
   FlatList,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from "react-native";
-import { Search, DownloadCloud } from "lucide-react-native";
+import { Search, Plus, Check } from "lucide-react-native";
 
 const STRAIN_TYPES: StrainType[] = ["indica", "sativa", "hybrid"];
+const TERPS: TerpProfile[] = [
+  "limonene",
+  "myrcene",
+  "pinene",
+  "caryophyllene",
+  "linalool",
+  "humulene",
+  "terpinolene",
+];
 
 export default function LibraryScreen() {
   const { strains, addStrain } = useApp();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<Set<StrainType>>(new Set());
-  const [importSummary, setImportSummary] = useState<string | null>(null);
+  const [bannerText, setBannerText] = useState<string | null>(null);
 
-  const importMutation = useMutation({
-    mutationFn: async () => await importFromSources(strains),
-    onSuccess: async (res) => {
-      for (const s of res.created) {
-        await addStrain(s);
-      }
-      setImportSummary(`Imported ${res.created.length}, skipped ${res.skipped}${res.errors ? ", errors " + res.errors : ""}`);
-    },
-    onError: () => {
-      setImportSummary("Import failed");
-    },
-  });
+  const [showAdd, setShowAdd] = useState<boolean>(false);
+  const [newName, setNewName] = useState<string>("");
+  const [newType, setNewType] = useState<StrainType>("hybrid");
+  const [newBreeder, setNewBreeder] = useState<string>("");
+  const [newDesc, setNewDesc] = useState<string>("");
+  const [newTerps, setNewTerps] = useState<Set<TerpProfile>>(new Set());
 
   useEffect(() => {
-    if (importSummary) {
-      const t = setTimeout(() => setImportSummary(null), 4000);
+    if (bannerText) {
+      const t = setTimeout(() => setBannerText(null), 4000);
       return () => clearTimeout(t);
     }
-  }, [importSummary]);
+  }, [bannerText]);
 
   const filteredStrains = useMemo(() => {
     let filtered = strains;
@@ -119,6 +122,39 @@ export default function LibraryScreen() {
     </View>
   );
 
+  const toggleTerp = (terp: TerpProfile) => {
+    const next = new Set(newTerps);
+    if (next.has(terp)) next.delete(terp); else next.add(terp);
+    setNewTerps(next);
+  };
+
+  const handleAdd = async () => {
+    const name = newName.trim();
+    if (!name) {
+      Alert.alert("Missing name", "Please enter a strain name");
+      return;
+    }
+    try {
+      const created = createStrain(name, newType, {
+        terp_profile: Array.from(newTerps),
+        breeder: newBreeder.trim() || undefined,
+        description: newDesc.trim() || undefined,
+        created_by: "user_default",
+        source: "user",
+      });
+      await addStrain(created);
+      setBannerText(`Added ${created.name}`);
+      setShowAdd(false);
+      setNewName("");
+      setNewType("hybrid");
+      setNewBreeder("");
+      setNewDesc("");
+      setNewTerps(new Set());
+    } catch (e) {
+      Alert.alert("Failed", "Could not add strain");
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -160,9 +196,9 @@ export default function LibraryScreen() {
         ))}
       </ScrollView>
 
-      {importSummary && (
+      {bannerText && (
         <View style={styles.banner}>
-          <Text style={styles.bannerText}>{importSummary}</Text>
+          <Text style={styles.bannerText}>{bannerText}</Text>
         </View>
       )}
 
@@ -181,15 +217,97 @@ export default function LibraryScreen() {
         }
       />
 
+      {showAdd && (
+        <View style={styles.addSheet}>
+          <View style={styles.addHeader}>
+            <Text style={styles.addTitle}>Add Strain</Text>
+            <TouchableOpacity onPress={() => setShowAdd(false)} style={styles.closePill}>
+              <Text style={styles.closePillText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.formRow}>
+            <Text style={styles.label}>Name</Text>
+            <TextInput
+              testID="add-name"
+              style={styles.input}
+              placeholder="e.g. Purple Nebula"
+              placeholderTextColor="#666"
+              value={newName}
+              onChangeText={setNewName}
+            />
+          </View>
+
+          <View style={styles.formRow}>
+            <Text style={styles.label}>Type</Text>
+            <View style={styles.rowChips}>
+              {STRAIN_TYPES.map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  style={[styles.methodChip, newType === t && styles.methodChipActive]}
+                  onPress={() => setNewType(t)}
+                >
+                  <Text style={[styles.methodChipText, newType === t && styles.methodChipTextActive]}>{t}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.formRow}>
+            <Text style={styles.label}>Terpenes</Text>
+            <View style={styles.rowWrap}>
+              {TERPS.map((tp) => (
+                <TouchableOpacity
+                  key={tp}
+                  style={[styles.effectChip, newTerps.has(tp) && styles.effectChipActive]}
+                  onPress={() => toggleTerp(tp)}
+                >
+                  {newTerps.has(tp) && <Check size={14} color="#fff" />}
+                  <Text style={[styles.effectChipText, newTerps.has(tp) && styles.effectChipTextActive]}>{tp}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.formRow}>
+            <Text style={styles.label}>Breeder (optional)</Text>
+            <TextInput
+              testID="add-breeder"
+              style={styles.input}
+              placeholder="Who bred it?"
+              placeholderTextColor="#666"
+              value={newBreeder}
+              onChangeText={setNewBreeder}
+            />
+          </View>
+
+          <View style={styles.formRow}>
+            <Text style={styles.label}>Description (optional)</Text>
+            <TextInput
+              testID="add-description"
+              style={[styles.input, styles.notesInput]}
+              placeholder="Aroma, lineage, effects..."
+              placeholderTextColor="#666"
+              value={newDesc}
+              onChangeText={setNewDesc}
+              multiline
+            />
+          </View>
+
+          <TouchableOpacity testID="add-submit" style={styles.submitButton} onPress={handleAdd}>
+            <Text style={styles.submitButtonText}>Add Strain</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <TouchableOpacity
         accessibilityRole="button"
-        testID="import-button"
-        style={[styles.fab, importMutation.isPending && styles.fabDisabled]}
-        onPress={() => importMutation.mutate()}
-        disabled={importMutation.isPending}
+        testID="add-button"
+        style={styles.fab}
+        onPress={() => setShowAdd(true)}
       >
-        <DownloadCloud color="#0a0a0a" size={20} />
-        <Text style={styles.fabText}>{importMutation.isPending ? "Importing..." : "Import"}</Text>
+        <Plus color="#0a0a0a" size={20} />
+        <Text style={styles.fabText}>Add</Text>
       </TouchableOpacity>
     </View>
   );
@@ -315,6 +433,128 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#444",
   },
+  addSheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#121212",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
+    gap: 12,
+    borderTopWidth: 1,
+    borderColor: "#2a2a2a",
+  },
+  addHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  addTitle: {
+    fontSize: 18,
+    fontWeight: "800" as const,
+    color: "#fff",
+  },
+  closePill: {
+    backgroundColor: "#1f2937",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  closePillText: {
+    color: "#e5e7eb",
+    fontWeight: "700" as const,
+  },
+  formRow: {
+    gap: 8,
+  },
+  label: {
+    color: "#9ca3af",
+    fontWeight: "700" as const,
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  rowChips: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  rowWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  methodChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#1a1a1a",
+    borderWidth: 2,
+    borderColor: "#333",
+  },
+  methodChipActive: {
+    backgroundColor: "#4ade80",
+    borderColor: "#4ade80",
+  },
+  methodChipText: {
+    fontSize: 15,
+    fontWeight: "600" as const,
+    color: "#999",
+    textTransform: "capitalize",
+  },
+  methodChipTextActive: {
+    color: "#0a0a0a",
+  },
+  input: {
+    backgroundColor: "#1a1a1a",
+    padding: 14,
+    borderRadius: 12,
+    fontSize: 16,
+    color: "#fff",
+    borderWidth: 2,
+    borderColor: "#333",
+  },
+  notesInput: {
+    minHeight: 100,
+  },
+  effectChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#1a1a1a",
+    borderWidth: 2,
+    borderColor: "#333",
+    gap: 6,
+  },
+  effectChipActive: {
+    backgroundColor: "rgba(74, 222, 128, 0.2)",
+    borderColor: "#4ade80",
+  },
+  effectChipText: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: "#999",
+    textTransform: "capitalize",
+  },
+  effectChipTextActive: {
+    color: "#4ade80",
+  },
+  submitButton: {
+    backgroundColor: "#4ade80",
+    padding: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  submitButtonText: {
+    fontSize: 16,
+    fontWeight: "800" as const,
+    color: "#0a0a0a",
+  },
   fab: {
     position: "absolute",
     right: 20,
@@ -330,9 +570,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
-  },
-  fabDisabled: {
-    opacity: 0.6,
   },
   fabText: {
     color: "#0a0a0a",

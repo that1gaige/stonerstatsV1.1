@@ -83,6 +83,43 @@ export const PUBLIC_SOURCES: ImportSource[] = [
       }));
     },
   },
+  {
+    id: "open-strains-3",
+    url: "https://raw.githubusercontent.com/public-datasets-rork/cannabis-strains/main/strains-extended.json",
+    parser(json: any): ExternalStrain[] {
+      if (!Array.isArray(json)) return [];
+      return json.map((row) => ({
+        name: String(row.name ?? "").trim(),
+        type: typeof row.type === "string" ? row.type : (typeof row.category === "string" ? row.category : undefined),
+        terpenes: Array.isArray(row.terpenes) ? row.terpenes : (Array.isArray(row.top_terpenes) ? row.top_terpenes : undefined),
+        breeder: typeof row.breeder === "string" ? row.breeder : null,
+        description: typeof row.description === "string" ? row.description : (typeof row.notes === "string" ? row.notes : null),
+        lineage: row.lineage && typeof row.lineage === "object" ? {
+          parents: Array.isArray(row.lineage.parents) ? row.lineage.parents : [],
+          children: Array.isArray(row.lineage.children) ? row.lineage.children : [],
+          notes: typeof row.lineage.notes === "string" ? row.lineage.notes : null,
+        } : null,
+        aliases: Array.isArray(row.aliases) ? row.aliases : null,
+      }));
+    },
+  },
+  {
+    id: "open-strains-4",
+    url: "https://raw.githubusercontent.com/public-datasets-rork/cannabis-strains/main/strains-more.json",
+    parser(json: any): ExternalStrain[] {
+      if (!json) return [];
+      const arr = Array.isArray(json) ? json : (Array.isArray(json.items) ? json.items : []);
+      return arr.map((item: any) => ({
+        name: String((item.title ?? item.name) ?? "").trim(),
+        type: typeof item.type === "string" ? item.type : (typeof item.family === "string" ? item.family : undefined),
+        terpenes: Array.isArray(item.terpenes) ? item.terpenes : (Array.isArray(item.chem_profile) ? item.chem_profile : undefined),
+        breeder: typeof item.breeder === "string" ? item.breeder : null,
+        description: typeof item.desc === "string" ? item.desc : (typeof item.description === "string" ? item.description : null),
+        lineage: null,
+        aliases: Array.isArray(item.aliases) ? item.aliases : null,
+      }));
+    },
+  },
 ];
 
 export type ImportResult = {
