@@ -124,14 +124,17 @@ function enhanceColorWithDescriptor(
   let lightness = Math.max(0, Math.min(100, baseLight + descriptorData.lightnessBoost));
 
   if (desc === 'white' || desc === 'silver' || desc === 'platinum' || desc === 'frost' || desc === 'snow' || desc === 'widow') {
-    saturation = Math.min(saturation, 8);
-    lightness = Math.max(lightness, 88);
-  } else if (desc === 'black' || desc === 'midnight' || desc === 'night') {
-    saturation = Math.min(saturation, 12);
-    lightness = Math.min(lightness, 18);
+    saturation = Math.min(saturation, 5);
+    lightness = Math.max(lightness, 92);
+  } else if (desc === 'black' || desc === 'midnight') {
+    saturation = Math.min(saturation, 5);
+    lightness = Math.min(lightness, 8);
+  } else if (desc === 'night') {
+    saturation = Math.min(saturation, 15);
+    lightness = Math.min(lightness, 15);
   } else if (desc === 'gray' || desc === 'grey' || desc === 'smoke' || desc === 'cloud' || desc === 'cloudy') {
-    saturation = Math.min(saturation, 16);
-    lightness = Math.max(48, Math.min(lightness, 62));
+    saturation = Math.min(saturation, 12);
+    lightness = Math.max(45, Math.min(lightness, 60));
   }
 
   return { hue, saturation, lightness };
@@ -255,17 +258,41 @@ export function generateIconParams(
       }
     }
 
+    let hasWhite = false;
+    let hasBlack = false;
+    
     for (const d of rawDescriptors) {
       const dl = d.toLowerCase();
       if (dl === 'white' || dl === 'silver' || dl === 'platinum' || dl === 'frost' || dl === 'snow' || dl === 'widow') {
-        finalSat = Math.min(finalSat, 8);
-        finalLight = Math.max(finalLight, 90);
-      } else if (dl === 'black' || dl === 'midnight' || dl === 'night') {
-        finalSat = Math.min(finalSat, 12);
-        finalLight = Math.min(finalLight, 18);
+        hasWhite = true;
+        finalSat = Math.min(finalSat, 5);
+        finalLight = Math.max(finalLight, 92);
+      } else if (dl === 'black' || dl === 'midnight') {
+        hasBlack = true;
+        finalSat = Math.min(finalSat, 5);
+        finalLight = Math.min(finalLight, 8);
+      } else if (dl === 'night') {
+        finalSat = Math.min(finalSat, 15);
+        finalLight = Math.min(finalLight, 15);
       } else if (dl === 'gray' || dl === 'grey' || dl === 'smoke' || dl === 'cloud' || dl === 'cloudy') {
-        finalSat = Math.min(finalSat, 16);
-        finalLight = Math.max(48, Math.min(finalLight, 62));
+        finalSat = Math.min(finalSat, 12);
+        finalLight = Math.max(45, Math.min(finalLight, 60));
+      }
+    }
+    
+    if ((hasWhite || hasBlack) && rawDescriptors.length > 1) {
+      const extraHues: number[] = [];
+      for (let i = 1; i < rawDescriptors.length; i++) {
+        const w = rawDescriptors[i].toLowerCase();
+        if (w !== 'white' && w !== 'silver' && w !== 'platinum' && w !== 'frost' && w !== 'snow' && w !== 'widow' && w !== 'black' && w !== 'midnight' && w !== 'night') {
+          const desc = getDescriptorColors(w);
+          if (desc && desc.category === 'color') {
+            extraHues.push(desc.hue);
+          }
+        }
+      }
+      if (extraHues.length > 0) {
+        workingDescriptors.push(...extraHues.map(h => `virtual:hue:${h}`));
       }
     }
   }
@@ -284,11 +311,11 @@ export function generateIconParams(
   };
 
   let gradient = generateGradient(workingDescriptors, dominantHue, finalSat, finalLight, digest);
-  const hasNeutral = rawDescriptors.some(d => {
+  const hasOnlyNeutral = rawDescriptors.length === 1 && rawDescriptors.some(d => {
     const w = d.toLowerCase();
     return w === 'white' || w === 'silver' || w === 'platinum' || w === 'frost' || w === 'snow' || w === 'black' || w === 'midnight' || w === 'night' || w === 'gray' || w === 'grey' || w === 'smoke' || w === 'cloud' || w === 'cloudy';
   });
-  if (hasNeutral) {
+  if (hasOnlyNeutral) {
     gradient = { enabled: false, type: 'linear', angle_deg: 0, blend_mode: 'overlay', opacity_pct: 0, stops: [] };
   }
 
