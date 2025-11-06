@@ -6,11 +6,13 @@ import { createStrain } from "@/utils/iconGenerator";
 import { writeStrainJSON, ensureStrainsDirectory } from "@/utils/strainJSONWriter";
 import { getStrainLibrarySummary } from "@/utils/listStrainsInFolder";
 import { DEMO_STRAINS_DATA } from "@/utils/seedDemoStrains";
+import { importFromSources } from "@/utils/importStrains";
 
 const STORAGE_KEYS = {
   USER: "stonerstats_user",
   STRAINS: "stonerstats_strains",
   SESSIONS: "stonerstats_sessions",
+  BULK_IMPORTED: "stonerstats_bulk_import_done",
 };
 
 const DEFAULT_USER: User = {
@@ -44,10 +46,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const loadData = async () => {
     try {
-      const [userData, strainsData, sessionsData] = await Promise.all([
+      const [userData, strainsData, sessionsData, bulkFlag] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.USER),
         AsyncStorage.getItem(STORAGE_KEYS.STRAINS),
         AsyncStorage.getItem(STORAGE_KEYS.SESSIONS),
+        AsyncStorage.getItem(STORAGE_KEYS.BULK_IMPORTED),
       ]);
 
       if (userData) {
@@ -85,6 +88,33 @@ export const [AppProvider, useApp] = createContextHook(() => {
             console.error(`Failed to write JSON for strain ${strain.strain_id}:`, error);
           }
         }
+      }
+
+      try {
+        const needBulk = (!bulkFlag || bulkFlag !== '1');
+        if (needBulk) {
+          const current = await AsyncStorage.getItem(STORAGE_KEYS.STRAINS);
+          const currentStrains: Strain[] = current ? JSON.parse(current).map((s: Strain) => ({ ...s, created_at: new Date(s.created_at) })) : [];
+          const maxTotal = 300;
+          if (currentStrains.length < maxTotal) {
+            const { created, skipped, errors } = await importFromSources(currentStrains);
+            console.log(`[BulkImport] created=${created.length} skipped=${skipped} errors=${errors}`);
+            const toAdd = created.slice(0, Math.max(0, maxTotal - currentStrains.length));
+            if (toAdd.length > 0) {
+              const merged = [...currentStrains, ...toAdd];
+              setStrains(merged);
+              await AsyncStorage.setItem(STORAGE_KEYS.STRAINS, JSON.stringify(merged));
+              for (const s of toAdd) {
+                try { await writeStrainJSON(s); } catch (e) { console.error('Bulk write JSON failed for', s.name, e); }
+              }
+            }
+            await AsyncStorage.setItem(STORAGE_KEYS.BULK_IMPORTED, '1');
+          } else {
+            await AsyncStorage.setItem(STORAGE_KEYS.BULK_IMPORTED, '1');
+          }
+        }
+      } catch (e) {
+        console.error('[BulkImport] failed', e);
       }
 
       if (sessionsData) {
