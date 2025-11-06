@@ -1,6 +1,10 @@
 import { useApp } from "@/contexts/AppContext";
 import { Strain, StrainType } from "@/types";
 import { StrainIcon } from "@/components/StrainIcon";
+const ICON_INDICA = require("@/assets/images/iconindica.png");
+const ICON_SATIVA = require("@/assets/images/iconsativa.png");
+const ICON_HYBRID_A = require("@/assets/images/iconhybrid.png");
+const ICON_HYBRID_B = require("@/assets/images/iconhybrid2.png");
 import { useState, useMemo } from "react";
 import {
   View,
@@ -56,9 +60,28 @@ export default function LibraryScreen() {
     setSelectedTypes(newSet);
   };
 
+  const pickHybridIcon = (seed: string) => {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+    return hash % 2 === 0 ? ICON_HYBRID_A : ICON_HYBRID_B;
+  };
+
+  const baseLeafFor = (s: Strain) => {
+    switch (s.type) {
+      case "indica":
+        return ICON_INDICA;
+      case "sativa":
+        return ICON_SATIVA;
+      case "hybrid":
+        return pickHybridIcon(s.icon_seed || s.name);
+      default:
+        return undefined as unknown as never;
+    }
+  };
+
   const renderStrainItem = ({ item }: { item: Strain }) => (
     <View style={styles.strainItem}>
-      <StrainIcon params={item.icon_render_params} size={72} />
+      <StrainIcon params={item.icon_render_params} size={72} baseLeafSource={baseLeafFor(item)} />
       <View style={styles.strainInfo}>
         <Text style={styles.strainName}>{item.name}</Text>
         <View style={styles.strainMeta}>

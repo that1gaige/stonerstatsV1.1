@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View, ImageSourcePropType } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { IconRenderParams, GradientStop } from "@/types";
@@ -6,11 +6,11 @@ import { IconRenderParams, GradientStop } from "@/types";
 interface StrainIconProps {
   params: IconRenderParams;
   size?: number;
-  baseLeafUri?: string;
+  baseLeafSource?: ImageSourcePropType;
   testID?: string;
 }
 
-export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIconProps) {
+export function StrainIcon({ params, size = 64, baseLeafSource, testID }: StrainIconProps) {
   const {
     stroke_px,
     outer_glow_enabled,
@@ -26,7 +26,7 @@ export function StrainIcon({ params, size = 64, baseLeafUri, testID }: StrainIco
   const radius = Math.round(size / 2);
 
   const localLeaf = require("@/assets/images/icontemp.png");
-  const leafSource = baseLeafUri && baseLeafUri.length > 0 ? { uri: baseLeafUri } : localLeaf;
+  const leafSource: ImageSourcePropType = baseLeafSource ?? localLeaf;
 
   const backgroundStops: GradientStop[] = (() => {
     if (!gradient.enabled) return [];
