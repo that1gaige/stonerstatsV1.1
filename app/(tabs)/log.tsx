@@ -1,5 +1,9 @@
 import { useApp } from "@/contexts/AppContext";
 import { StrainIcon } from "@/components/StrainIcon";
+const ICON_INDICA = require("@/assets/images/iconindica.png");
+const ICON_SATIVA = require("@/assets/images/iconsativa.png");
+const ICON_HYBRID_A = require("@/assets/images/iconhybrid.png");
+const ICON_HYBRID_B = require("@/assets/images/iconhybrid2.png");
 import { EffectTag, Method, SmokeSession, Strain } from "@/types";
 import { useMemo, useState } from "react";
 import {
@@ -45,6 +49,25 @@ export default function LogScreen() {
   const [selectedEffects, setSelectedEffects] = useState<Set<EffectTag>>(new Set());
   const [notes, setNotes] = useState("");
   const [showStrainPicker, setShowStrainPicker] = useState(false);
+
+  const pickHybridIcon = (seed: string) => {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+    return hash % 2 === 0 ? ICON_HYBRID_A : ICON_HYBRID_B;
+  };
+
+  const baseLeafFor = (s: Strain) => {
+    switch (s.type) {
+      case "indica":
+        return ICON_INDICA;
+      case "sativa":
+        return ICON_SATIVA;
+      case "hybrid":
+        return pickHybridIcon(s.icon_seed || s.name);
+      default:
+        return undefined as unknown as never;
+    }
+  };
 
   const toggleEffect = (effect: EffectTag) => {
     const newSet = new Set(selectedEffects);
@@ -108,7 +131,7 @@ export default function LogScreen() {
             style={styles.selectedStrain}
             onPress={() => setShowStrainPicker(true)}
           >
-            <StrainIcon params={selectedStrain.icon_render_params} size={48} />
+            <StrainIcon params={selectedStrain.icon_render_params} size={48} baseLeafSource={baseLeafFor(selectedStrain)} fillSeedUUID={selectedStrain.strain_id} />
             <View style={styles.strainInfo}>
               <Text style={styles.strainName}>{selectedStrain.name}</Text>
               <Text style={styles.strainType}>{selectedStrain.type}</Text>
@@ -136,7 +159,7 @@ export default function LogScreen() {
                   setShowStrainPicker(false);
                 }}
               >
-                <StrainIcon params={strain.icon_render_params} size={40} />
+                <StrainIcon params={strain.icon_render_params} size={40} baseLeafSource={baseLeafFor(strain)} fillSeedUUID={strain.strain_id} />
                 <Text style={styles.pickerItemText}>{strain.name}</Text>
               </TouchableOpacity>
             ))}

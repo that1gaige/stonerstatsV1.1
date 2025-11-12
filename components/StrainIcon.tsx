@@ -39,8 +39,7 @@ export function StrainIcon({ params, size = 64, baseLeafSource, fillSeedUUID, te
 
   const radius = Math.round(size / 2);
 
-  const localLeaf = require("@/assets/images/icontemp.png");
-  const leafSource: ImageSourcePropType = baseLeafSource ?? localLeaf;
+  const leafSource: ImageSourcePropType = baseLeafSource ?? require("@/assets/images/icontemp.png");
 
   const backgroundStops: GradientStop[] = (() => {
     if (!gradient.enabled) return [];
