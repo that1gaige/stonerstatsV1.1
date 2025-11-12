@@ -2,10 +2,7 @@ import { useApp } from "@/contexts/AppContext";
 import { Strain, StrainType, TerpProfile } from "@/types";
 import { StrainIcon } from "@/components/StrainIcon";
 import { createStrain } from "@/utils/iconGenerator";
-const ICON_INDICA = require("@/assets/images/iconindica.png");
-const ICON_SATIVA = require("@/assets/images/iconsativa.png");
-const ICON_HYBRID_A = require("@/assets/images/iconhybrid.png");
-const ICON_HYBRID_B = require("@/assets/images/iconhybrid2.png");
+import { getStrainIcon } from "@/constants/icons";
 import { useState, useMemo, useEffect } from "react";
 import {
   View,
@@ -86,28 +83,11 @@ export default function LibraryScreen() {
     setSelectedTypes(newSet);
   };
 
-  const pickHybridIcon = (seed: string) => {
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-    return hash % 2 === 0 ? ICON_HYBRID_A : ICON_HYBRID_B;
-  };
 
-  const baseLeafFor = (s: Strain) => {
-    switch (s.type) {
-      case "indica":
-        return ICON_INDICA;
-      case "sativa":
-        return ICON_SATIVA;
-      case "hybrid":
-        return pickHybridIcon(s.icon_seed || s.name);
-      default:
-        return undefined as unknown as never;
-    }
-  };
 
   const renderStrainItem = ({ item }: { item: Strain }) => (
     <View style={styles.strainItem}>
-      <StrainIcon params={item.icon_render_params} size={72} baseLeafSource={baseLeafFor(item)} fillSeedUUID={item.strain_id} />
+      <StrainIcon params={item.icon_render_params} size={72} baseLeafSource={getStrainIcon(item)} fillSeedUUID={item.strain_id} />
       <View style={styles.strainInfo}>
         <Text style={styles.strainName}>{item.name}</Text>
         <View style={styles.strainMeta}>

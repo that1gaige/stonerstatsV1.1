@@ -1,9 +1,6 @@
 import { useApp } from "@/contexts/AppContext";
 import { StrainIcon } from "@/components/StrainIcon";
-const ICON_INDICA = require("@/assets/images/iconindica.png");
-const ICON_SATIVA = require("@/assets/images/iconsativa.png");
-const ICON_HYBRID_A = require("@/assets/images/iconhybrid.png");
-const ICON_HYBRID_B = require("@/assets/images/iconhybrid2.png");
+import { getStrainIcon } from "@/constants/icons";
 import { SmokeSession } from "@/types";
 import { View, Text, StyleSheet, FlatList, ScrollView } from "react-native";
 import { useMemo } from "react";
@@ -32,11 +29,7 @@ export default function FeedScreen() {
     return `${weeks}w ago`;
   };
 
-  const pickHybridIcon = (seed: string) => {
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-    return hash % 2 === 0 ? ICON_HYBRID_A : ICON_HYBRID_B;
-  };
+
 
   const renderSession = ({ item }: { item: SmokeSession }) => {
     const strain = strains.find((s) => s.strain_id === item.strain_id);
@@ -60,13 +53,7 @@ export default function FeedScreen() {
           <StrainIcon
             params={strain.icon_render_params}
             size={40}
-            baseLeafSource={
-              strain.type === "indica"
-                ? ICON_INDICA
-                : strain.type === "sativa"
-                ? ICON_SATIVA
-                : pickHybridIcon(strain.icon_seed || strain.name)
-            }
+            baseLeafSource={getStrainIcon(strain)}
             fillSeedUUID={strain.strain_id}
           />
           <View style={styles.strainDetails}>
