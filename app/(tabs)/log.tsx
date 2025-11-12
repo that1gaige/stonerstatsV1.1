@@ -12,7 +12,8 @@ import {
   TextInput,
   Alert,
 } from "react-native";
-import { Check } from "lucide-react-native";
+import { Check, Scan } from "lucide-react-native";
+import { router } from "expo-router";
 
 const METHODS: Method[] = ["joint", "bong", "pipe", "vape", "edible", "dab"];
 const EFFECTS: EffectTag[] = [
@@ -105,7 +106,16 @@ export default function LogScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Strain</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Strain</Text>
+          <TouchableOpacity
+            style={styles.scanButton}
+            onPress={() => router.push("/scan")}
+          >
+            <Scan size={20} color="#4ade80" />
+            <Text style={styles.scanButtonText}>Scan</Text>
+          </TouchableOpacity>
+        </View>
         {selectedStrain ? (
           <TouchableOpacity
             style={styles.selectedStrain}
@@ -291,13 +301,34 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700" as const,
     color: "#fff",
-    marginBottom: 12,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  scanButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(74, 222, 128, 0.15)",
+    borderWidth: 1,
+    borderColor: "#4ade80",
+  },
+  scanButtonText: {
+    fontSize: 14,
+    fontWeight: "700" as const,
+    color: "#4ade80",
   },
   selectedStrain: {
     flexDirection: "row",
