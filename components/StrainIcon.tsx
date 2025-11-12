@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, View, ImageSourcePropType, Image as RNImage } from "react-native";
+import { Platform, StyleSheet, View, ImageSourcePropType } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { IconRenderParams, GradientStop } from "@/types";
@@ -92,172 +92,92 @@ export function StrainIcon({ params, size = 64, baseLeafSource, fillSeedUUID, te
         />
       )}
 
-      {Platform.OS === 'ios' ? (
-        <RNImage
-          testID="strain-icon-stroke"
-          source={leafSource}
-          resizeMode="contain"
-          style={[
-            styles.leafStroke,
-            {
-              width: strokeSize,
-              height: strokeSize,
-              backgroundColor: 'transparent',
-              tintColor: strokeColor,
-            },
-          ]}
-        />
-      ) : (
-        <Image
-          testID="strain-icon-stroke"
-          source={leafSource}
-          contentFit="contain"
-          tintColor={strokeColor}
-          style={[
-            styles.leafStroke,
-            {
-              width: strokeSize,
-              height: strokeSize,
-              backgroundColor: 'transparent',
-              filter:
-                Platform.OS === 'web'
-                  ? ("drop-shadow(0 0 0 " + strokeColor + ") drop-shadow(0 0 " + Math.max(1, Math.round(stroke_px)) + "px " + strokeColor + ")" as unknown as any)
-                  : undefined,
-            },
-          ]}
-          transition={0}
-        />
-      )}
+      <Image
+        testID="strain-icon-stroke"
+        source={leafSource}
+        contentFit="contain"
+        tintColor={strokeColor}
+        style={[
+          styles.leafStroke,
+          {
+            width: strokeSize,
+            height: strokeSize,
+            backgroundColor: 'transparent',
+            filter:
+              Platform.OS === 'web'
+                ? ("drop-shadow(0 0 0 " + strokeColor + ") drop-shadow(0 0 " + Math.max(1, Math.round(stroke_px)) + "px " + strokeColor + ")" as unknown as any)
+                : undefined,
+          },
+        ]}
+        transition={0}
+      />
 
       {outer_glow_enabled && Platform.OS !== 'web' && (
         <>
-          {Platform.OS === 'ios' ? (
-            <>
-              <RNImage
-                testID="strain-icon-glow-1"
-                source={leafSource}
-                resizeMode="contain"
-                style={{
-                  position: 'absolute',
-                  width: Math.round(leafSize * 1.06),
-                  height: Math.round(leafSize * 1.06),
-                  opacity: Math.min(0.35, outer_glow_intensity_pct / 120),
-                  backgroundColor: 'transparent',
-                  tintColor: tintColor,
-                }}
-              />
-              <RNImage
-                testID="strain-icon-glow-2"
-                source={leafSource}
-                resizeMode="contain"
-                style={{
-                  position: 'absolute',
-                  width: Math.round(leafSize * 1.12),
-                  height: Math.round(leafSize * 1.12),
-                  opacity: Math.min(0.22, outer_glow_intensity_pct / 140),
-                  backgroundColor: 'transparent',
-                  tintColor: tintColor,
-                }}
-              />
-              <RNImage
-                testID="strain-icon-glow-3"
-                source={leafSource}
-                resizeMode="contain"
-                style={{
-                  position: 'absolute',
-                  width: Math.round(leafSize * 1.18),
-                  height: Math.round(leafSize * 1.18),
-                  opacity: Math.min(0.12, outer_glow_intensity_pct / 160),
-                  backgroundColor: 'transparent',
-                  tintColor: tintColor,
-                }}
-              />
-            </>
-          ) : (
-            <>
-              <Image
-                testID="strain-icon-glow-1"
-                source={leafSource}
-                contentFit="contain"
-                tintColor={tintColor}
-                style={{
-                  position: 'absolute',
-                  width: Math.round(leafSize * 1.06),
-                  height: Math.round(leafSize * 1.06),
-                  opacity: Math.min(0.35, outer_glow_intensity_pct / 120),
-                  backgroundColor: 'transparent',
-                }}
-                transition={0}
-              />
-              <Image
-                testID="strain-icon-glow-2"
-                source={leafSource}
-                contentFit="contain"
-                tintColor={tintColor}
-                style={{
-                  position: 'absolute',
-                  width: Math.round(leafSize * 1.12),
-                  height: Math.round(leafSize * 1.12),
-                  opacity: Math.min(0.22, outer_glow_intensity_pct / 140),
-                  backgroundColor: 'transparent',
-                }}
-                transition={0}
-              />
-              <Image
-                testID="strain-icon-glow-3"
-                source={leafSource}
-                contentFit="contain"
-                tintColor={tintColor}
-                style={{
-                  position: 'absolute',
-                  width: Math.round(leafSize * 1.18),
-                  height: Math.round(leafSize * 1.18),
-                  opacity: Math.min(0.12, outer_glow_intensity_pct / 160),
-                  backgroundColor: 'transparent',
-                }}
-                transition={0}
-              />
-            </>
-          )}
+          <Image
+            testID="strain-icon-glow-1"
+            source={leafSource}
+            contentFit="contain"
+            tintColor={tintColor}
+            style={{
+              position: 'absolute',
+              width: Math.round(leafSize * 1.06),
+              height: Math.round(leafSize * 1.06),
+              opacity: Math.min(0.35, outer_glow_intensity_pct / 120),
+              backgroundColor: 'transparent',
+            }}
+            transition={0}
+          />
+          <Image
+            testID="strain-icon-glow-2"
+            source={leafSource}
+            contentFit="contain"
+            tintColor={tintColor}
+            style={{
+              position: 'absolute',
+              width: Math.round(leafSize * 1.12),
+              height: Math.round(leafSize * 1.12),
+              opacity: Math.min(0.22, outer_glow_intensity_pct / 140),
+              backgroundColor: 'transparent',
+            }}
+            transition={0}
+          />
+          <Image
+            testID="strain-icon-glow-3"
+            source={leafSource}
+            contentFit="contain"
+            tintColor={tintColor}
+            style={{
+              position: 'absolute',
+              width: Math.round(leafSize * 1.18),
+              height: Math.round(leafSize * 1.18),
+              opacity: Math.min(0.12, outer_glow_intensity_pct / 160),
+              backgroundColor: 'transparent',
+            }}
+            transition={0}
+          />
         </>
       )}
 
-      {Platform.OS === 'ios' ? (
-        <RNImage
-          testID="strain-icon-leaf"
-          source={leafSource}
-          resizeMode="contain"
-          style={[
-            styles.leaf,
-            {
-              width: leafSize,
-              height: leafSize,
-              backgroundColor: 'transparent',
-              tintColor: tintColor,
-            },
-          ]}
-        />
-      ) : (
-        <Image
-          testID="strain-icon-leaf"
-          source={leafSource}
-          contentFit="contain"
-          tintColor={tintColor}
-          style={[
-            styles.leaf,
-            {
-              width: leafSize,
-              height: leafSize,
-              filter:
-                Platform.OS === 'web' && outer_glow_enabled
-                  ? ("drop-shadow(0 0 " + Math.round(size * 0.24) + "px " + tintColor + ")" as unknown as any)
-                  : undefined,
-              backgroundColor: 'transparent',
-            },
-          ]}
-          transition={100}
-        />
-      )}
+      <Image
+        testID="strain-icon-leaf"
+        source={leafSource}
+        contentFit="contain"
+        tintColor={tintColor}
+        style={[
+          styles.leaf,
+          {
+            width: leafSize,
+            height: leafSize,
+            filter:
+              Platform.OS === 'web' && outer_glow_enabled
+                ? ("drop-shadow(0 0 " + Math.round(size * 0.24) + "px " + tintColor + ")" as unknown as any)
+                : undefined,
+            backgroundColor: 'transparent',
+          },
+        ]}
+        transition={100}
+      />
     </View>
   );
 }
