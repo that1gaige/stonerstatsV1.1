@@ -39,7 +39,9 @@ export function StrainIcon({ params, size = 64, baseLeafSource, fillSeedUUID, te
 
   const radius = Math.round(size / 2);
 
-  const leafSource = baseLeafSource || require("@/assets/images/icontemp.png");
+  const leafSource = (baseLeafSource && typeof baseLeafSource === 'object' && Object.keys(baseLeafSource).length > 0) 
+    ? baseLeafSource 
+    : require("@/assets/images/icontemp.png");
   
   console.log('StrainIcon baseLeafSource:', baseLeafSource);
   console.log('StrainIcon leafSource:', leafSource);
