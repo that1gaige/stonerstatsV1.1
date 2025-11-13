@@ -3,7 +3,7 @@ import { Strain, StrainType, TerpProfile } from "@/types";
 import { StrainIcon } from "@/components/StrainIcon";
 import { createStrain } from "@/utils/iconGenerator";
 import { getStrainIcon } from "@/constants/icons";
-import { DEMO_STRAINS_DATA } from "@/constants/demoStrains";
+import { EXPLORE_STRAINS_DATA } from "@/constants/exploreStrains";
 import { useState, useMemo, useEffect } from "react";
 import {
   View,
@@ -33,7 +33,7 @@ const TERPS: TerpProfile[] = [
   "terpinolene",
 ];
 
-const ALL_STRAINS = DEMO_STRAINS_DATA.map((d) =>
+const ALL_STRAINS = EXPLORE_STRAINS_DATA.map((d) =>
   createStrain(d.name, d.type, {
     terp_profile: [...d.terp_profile],
     description: d.description,
