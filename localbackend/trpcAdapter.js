@@ -1,15 +1,12 @@
 const { initTRPC } = require('@trpc/server');
 const { createExpressMiddleware } = require('@trpc/server/adapters/express');
-const SuperJSON = require('superjson');
 const z = require('zod');
 
 const authController = require('./controllers/authController');
 const strainsController = require('./controllers/strainsController');
 const sessionsController = require('./controllers/sessionsController');
 
-const t = initTRPC.create({
-  transformer: SuperJSON,
-});
+const t = initTRPC.create();
 
 const router = t.router;
 const publicProcedure = t.procedure;
