@@ -22,19 +22,6 @@ export const trpcClient = trpc.createClient({
           authorization: token ? `Bearer ${token}` : "",
         };
       },
-      async fetch(url, options) {
-        console.log('[tRPC] Fetching:', url);
-        try {
-          const response = await fetch(url, options);
-          console.log('[tRPC] Response status:', response.status);
-          const text = await response.clone().text();
-          console.log('[tRPC] Response body:', text.substring(0, 200));
-          return response;
-        } catch (error) {
-          console.error('[tRPC] Fetch error:', error);
-          throw error;
-        }
-      },
     }),
   ],
 });
