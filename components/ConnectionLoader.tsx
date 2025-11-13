@@ -55,39 +55,56 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
   });
 
   const checkConnection = async () => {
-    console.log(`[ConnectionLoader] Attempt ${attemptCount} - Checking connection...`);
+    console.log(`[ConnectionLoader] ========== Attempt ${attemptCount} ==========`);
     console.log('[ConnectionLoader] Server URL:', LOCALBACKEND_CONFIG.BASE_URL);
+    console.log('[ConnectionLoader] Full health check URL:', `${LOCALBACKEND_CONFIG.BASE_URL}/api/health`);
     
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
       
+      console.log('[ConnectionLoader] Starting fetch...');
       const response = await fetch(`${LOCALBACKEND_CONFIG.BASE_URL}/api/health`, {
+        method: 'GET',
         signal: controller.signal,
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
+        mode: 'cors',
       });
       
       clearTimeout(timeoutId);
       
+      console.log('[ConnectionLoader] Fetch completed, status:', response.status);
+      console.log('[ConnectionLoader] Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
+      
       if (response.ok) {
         const data = await response.json();
-        console.log('[ConnectionLoader] Connected successfully:', data);
+        console.log('[ConnectionLoader] ✅ Connected successfully:', data);
         setLastError(null);
         onConnectionSuccess();
       } else {
         const errorMsg = `Server returned status: ${response.status}`;
-        console.error('[ConnectionLoader] Connection failed:', errorMsg);
+        console.error('[ConnectionLoader] ❌ Connection failed:', errorMsg);
         setLastError(errorMsg);
         scheduleRetry();
       }
     } catch (error: any) {
-      const errorMsg = error.name === 'AbortError' 
-        ? 'Connection timeout - server not responding'
-        : `Failed to fetch`;
+      console.error('[ConnectionLoader] ❌ Exception caught:', error);
+      console.error('[ConnectionLoader] Error type:', error.constructor?.name);
+      console.error('[ConnectionLoader] Error message:', error.message);
+      console.error('[ConnectionLoader] Error stack:', error.stack);
       
-      console.error('[ConnectionLoader] Connection error:', error);
+      let errorMsg = 'Unknown error';
+      if (error.name === 'AbortError') {
+        errorMsg = 'Connection timeout - server not responding';
+      } else if (error.message) {
+        errorMsg = `${error.name || 'Error'}: ${error.message}`;
+      } else {
+        errorMsg = 'Failed to fetch - network error';
+      }
+      
       setLastError(errorMsg);
       scheduleRetry();
     }

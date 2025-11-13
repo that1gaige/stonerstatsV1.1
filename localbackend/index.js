@@ -12,7 +12,12 @@ const { createTRPCMiddleware } = require('./trpcAdapter');
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -22,6 +27,7 @@ app.use((req, res, next) => {
 });
 
 app.get('/api/health', (req, res) => {
+  console.log('[Health Check] Received request from:', req.headers['user-agent'] || 'unknown');
   res.json({
     status: 'ok',
     service: 'stonerstats-localbackend',
