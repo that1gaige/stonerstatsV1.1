@@ -254,14 +254,31 @@ IMPORTANT:
 
       let parsed: any;
       try {
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          parsed = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error("No JSON found in response");
+        let cleanedResponse = response.trim();
+        
+        const codeBlockMatch = cleanedResponse.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeBlockMatch) {
+          cleanedResponse = codeBlockMatch[1].trim();
         }
+        
+        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error("No JSON object found in response");
+        }
+        
+        let jsonStr = jsonMatch[0];
+        const bracketBalance = (jsonStr.match(/\{/g) || []).length - (jsonStr.match(/\}/g) || []).length;
+        if (bracketBalance !== 0) {
+          const lastBrace = jsonStr.lastIndexOf('}');
+          if (lastBrace !== -1) {
+            jsonStr = jsonStr.substring(0, lastBrace + 1);
+          }
+        }
+        
+        parsed = JSON.parse(jsonStr);
       } catch (parseError) {
         console.error("Failed to parse AI response:", parseError);
+        console.error("Raw response:", response);
         Alert.alert(
           "Scan Failed",
           "Could not extract strain information from the image(s). Please try again with better lighting or a clearer view of the label."
