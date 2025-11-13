@@ -183,6 +183,8 @@ IMPORTANT:
         terp_profile: validTerpenes.length > 0 ? validTerpenes : undefined,
         description: descriptionParts.join("\n") || undefined,
         breeder: parsed.breeder || undefined,
+        source: "user",
+        created_by: "user_default",
       });
 
       await addStrain(newStrain);

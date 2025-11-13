@@ -3,6 +3,7 @@ import { Strain, StrainType, TerpProfile } from "@/types";
 import { StrainIcon } from "@/components/StrainIcon";
 import { createStrain } from "@/utils/iconGenerator";
 import { getStrainIcon } from "@/constants/icons";
+import { DEMO_STRAINS_DATA } from "@/utils/seedDemoStrains";
 import { useState, useMemo, useEffect } from "react";
 import {
   View,
@@ -14,7 +15,8 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { Search, Plus, Check } from "lucide-react-native";
+import { Search, Plus, Check, Camera } from "lucide-react-native";
+import { router } from "expo-router";
 
 const STRAIN_TYPES: StrainType[] = ["indica", "sativa", "hybrid"];
 const TERPS: TerpProfile[] = [
@@ -27,8 +29,19 @@ const TERPS: TerpProfile[] = [
   "terpinolene",
 ];
 
+const ALL_STRAINS = DEMO_STRAINS_DATA.map((d) =>
+  createStrain(d.name, d.type, {
+    terp_profile: [...d.terp_profile],
+    description: d.description,
+    source: "developer",
+  })
+);
+
+type TabType = "my-strains" | "explore";
+
 export default function LibraryScreen() {
   const { strains, addStrain } = useApp();
+  const [activeTab, setActiveTab] = useState<TabType>("my-strains");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<Set<StrainType>>(new Set());
   const [bannerText, setBannerText] = useState<string | null>(null);
@@ -47,8 +60,14 @@ export default function LibraryScreen() {
     }
   }, [bannerText]);
 
+  const userStrains = useMemo(() => {
+    return strains.filter((s) => s.source === "user" || !s.source);
+  }, [strains]);
+
+  const dataSource = activeTab === "my-strains" ? userStrains : ALL_STRAINS;
+
   const filteredStrains = useMemo(() => {
-    let filtered = strains;
+    let filtered = dataSource;
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -71,7 +90,7 @@ export default function LibraryScreen() {
     }
 
     return Array.from(dedupedMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [strains, searchQuery, selectedTypes]);
+  }, [dataSource, searchQuery, selectedTypes]);
 
   const toggleType = (type: StrainType) => {
     const newSet = new Set(selectedTypes);
@@ -83,11 +102,14 @@ export default function LibraryScreen() {
     setSelectedTypes(newSet);
   };
 
-
-
   const renderStrainItem = ({ item }: { item: Strain }) => (
     <View style={styles.strainItem}>
-      <StrainIcon params={item.icon_render_params} size={72} baseLeafSource={getStrainIcon(item)} fillSeedUUID={item.strain_id} />
+      <StrainIcon
+        params={item.icon_render_params}
+        size={72}
+        baseLeafSource={getStrainIcon(item)}
+        fillSeedUUID={item.strain_id}
+      />
       <View style={styles.strainInfo}>
         <Text style={styles.strainName}>{item.name}</Text>
         <View style={styles.strainMeta}>
@@ -98,13 +120,19 @@ export default function LibraryScreen() {
             <Text style={styles.terpText}>{item.terp_profile[0]}</Text>
           )}
         </View>
+        {item.description && (
+          <Text style={styles.descText} numberOfLines={2}>
+            {item.description}
+          </Text>
+        )}
       </View>
     </View>
   );
 
   const toggleTerp = (terp: TerpProfile) => {
     const next = new Set(newTerps);
-    if (next.has(terp)) next.delete(terp); else next.add(terp);
+    if (next.has(terp)) next.delete(terp);
+    else next.add(terp);
     setNewTerps(next);
   };
 
@@ -134,10 +162,27 @@ export default function LibraryScreen() {
     }
   };
 
-
-
   return (
     <View style={styles.container}>
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "my-strains" && styles.tabActive]}
+          onPress={() => setActiveTab("my-strains")}
+        >
+          <Text style={[styles.tabText, activeTab === "my-strains" && styles.tabTextActive]}>
+            My Strains
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "explore" && styles.tabActive]}
+          onPress={() => setActiveTab("explore")}
+        >
+          <Text style={[styles.tabText, activeTab === "explore" && styles.tabTextActive]}>
+            Explore
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.searchContainer}>
         <Search size={20} color="#666" style={styles.searchIcon} />
         <TextInput
@@ -186,13 +231,17 @@ export default function LibraryScreen() {
       <FlatList
         data={filteredStrains}
         renderItem={renderStrainItem}
-        keyExtractor={(item, index) => (item.strain_id && item.strain_id.length > 0 ? item.strain_id : `${item.name}-${index}`)}
+        keyExtractor={(item, index) =>
+          item.strain_id && item.strain_id.length > 0 ? item.strain_id : `${item.name}-${index}`
+        }
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No strains found</Text>
             <Text style={styles.emptySubtext}>
-              Try adjusting your search or filters
+              {activeTab === "my-strains"
+                ? "Add your first strain or scan a container"
+                : "Try adjusting your search or filters"}
             </Text>
           </View>
         }
@@ -228,7 +277,11 @@ export default function LibraryScreen() {
                   style={[styles.methodChip, newType === t && styles.methodChipActive]}
                   onPress={() => setNewType(t)}
                 >
-                  <Text style={[styles.methodChipText, newType === t && styles.methodChipTextActive]}>{t}</Text>
+                  <Text
+                    style={[styles.methodChipText, newType === t && styles.methodChipTextActive]}
+                  >
+                    {t}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -244,12 +297,15 @@ export default function LibraryScreen() {
                   onPress={() => toggleTerp(tp)}
                 >
                   {newTerps.has(tp) && <Check size={14} color="#fff" />}
-                  <Text style={[styles.effectChipText, newTerps.has(tp) && styles.effectChipTextActive]}>{tp}</Text>
+                  <Text
+                    style={[styles.effectChipText, newTerps.has(tp) && styles.effectChipTextActive]}
+                  >
+                    {tp}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
-
 
           <View style={styles.formRow}>
             <Text style={styles.label}>Description (optional)</Text>
@@ -264,21 +320,39 @@ export default function LibraryScreen() {
             />
           </View>
 
-          <TouchableOpacity testID="add-submit" style={styles.submitButton} onPress={handleAdd}>
+          <TouchableOpacity
+            testID="add-submit"
+            style={styles.submitButton}
+            onPress={handleAdd}
+          >
             <Text style={styles.submitButtonText}>Add Strain</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      <TouchableOpacity
-        accessibilityRole="button"
-        testID="add-button"
-        style={styles.fab}
-        onPress={() => setShowAdd(true)}
-      >
-        <Plus color="#0a0a0a" size={20} />
-        <Text style={styles.fabText}>Add</Text>
-      </TouchableOpacity>
+      {activeTab === "my-strains" && (
+        <>
+          <TouchableOpacity
+            accessibilityRole="button"
+            testID="scan-button"
+            style={styles.scanFab}
+            onPress={() => router.push("/scan")}
+          >
+            <Camera color="#0a0a0a" size={20} />
+            <Text style={styles.fabText}>Scan</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            accessibilityRole="button"
+            testID="add-button"
+            style={styles.fab}
+            onPress={() => setShowAdd(true)}
+          >
+            <Plus color="#0a0a0a" size={20} />
+            <Text style={styles.fabText}>Add</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
@@ -287,6 +361,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#0a0a0a",
+  },
+  tabBar: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    gap: 8,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 12,
+    backgroundColor: "#1a1a1a",
+  },
+  tabActive: {
+    backgroundColor: "#4ade80",
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: "700" as const,
+    color: "#666",
+  },
+  tabTextActive: {
+    color: "#0a0a0a",
   },
   searchContainer: {
     flexDirection: "row",
@@ -348,10 +446,11 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 16,
     gap: 12,
+    paddingBottom: 100,
   },
   strainItem: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     backgroundColor: "#1a1a1a",
     padding: 16,
     borderRadius: 16,
@@ -388,6 +487,12 @@ const styles = StyleSheet.create({
     fontWeight: "600" as const,
     textTransform: "capitalize",
   },
+  descText: {
+    fontSize: 13,
+    color: "#666",
+    lineHeight: 18,
+    marginTop: 2,
+  },
   emptyContainer: {
     flex: 1,
     alignItems: "center",
@@ -403,6 +508,7 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 15,
     color: "#444",
+    textAlign: "center",
   },
   addSheet: {
     position: "absolute",
@@ -416,6 +522,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderTopWidth: 1,
     borderColor: "#2a2a2a",
+    maxHeight: "80%",
   },
   addHeader: {
     flexDirection: "row",
@@ -525,6 +632,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800" as const,
     color: "#0a0a0a",
+  },
+  scanFab: {
+    position: "absolute",
+    right: 20,
+    bottom: 100,
+    backgroundColor: "#4ade80",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    shadowColor: "#4ade80",
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
   fab: {
     position: "absolute",
