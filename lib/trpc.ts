@@ -15,7 +15,6 @@ export const trpcClient = trpc.createClient({
   links: [
     httpLink({
       url: `${getBaseUrl()}/api/trpc`,
-      transformer: undefined,
       async headers() {
         const token = await AsyncStorage.getItem("stonerstats_auth_token");
         console.log('[tRPC] Request with token:', token ? 'present' : 'none');
@@ -28,6 +27,8 @@ export const trpcClient = trpc.createClient({
         try {
           const response = await fetch(url, options);
           console.log('[tRPC] Response status:', response.status);
+          const text = await response.clone().text();
+          console.log('[tRPC] Response body:', text.substring(0, 200));
           return response;
         } catch (error) {
           console.error('[tRPC] Fetch error:', error);
