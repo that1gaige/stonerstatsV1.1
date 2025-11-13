@@ -114,8 +114,22 @@ const appRouter = router({
   }),
   
   sessions: router({
-    getAll: protectedProcedure.query(async ({ ctx }) => {
-      return sessionsController.getAllSessionsHelper(ctx.user.id);
+    getUserSessions: protectedProcedure.query(async ({ ctx }) => {
+      const sessions = sessionsController.getAllSessionsHelper(ctx.user.id);
+      return sessions.map(session => ({
+        session_id: session.id,
+        user_id: session.userId,
+        strain_id: session.strainId,
+        method: session.method || 'joint',
+        amount: session.amount || 1,
+        amount_unit: session.amountUnit || 'g',
+        mood_before: session.moodBefore,
+        mood_after: session.moodAfter,
+        effects_tags: session.effects || [],
+        notes: session.notes,
+        photo_urls: session.photoUrls || [],
+        created_at: new Date(session.createdAt || Date.now()),
+      }));
     }),
     
     getFeed: protectedProcedure.query(async ({ ctx }) => {
@@ -165,25 +179,55 @@ const appRouter = router({
     
     create: protectedProcedure
       .input(z.object({
-        strainId: z.string(),
-        rating: z.number().min(1).max(5),
-        effects: z.array(z.string()).optional(),
+        strain_id: z.string(),
+        method: z.enum(['joint', 'bong', 'pipe', 'vape', 'edible', 'dab', 'other']),
+        amount: z.number().positive(),
+        amount_unit: z.enum(['g', 'mg']),
+        mood_before: z.number().min(1).max(5).optional(),
+        mood_after: z.number().min(1).max(5).optional(),
+        effects_tags: z.array(z.string()),
         notes: z.string().optional(),
-        timestamp: z.string().optional(),
+        photo_urls: z.array(z.string()).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        return sessionsController.createSessionHelper({ ...input, userId: ctx.user.id });
+        return sessionsController.createSessionHelper({
+          strainId: input.strain_id,
+          method: input.method,
+          amount: input.amount,
+          amountUnit: input.amount_unit,
+          moodBefore: input.mood_before,
+          moodAfter: input.mood_after,
+          effects: input.effects_tags,
+          notes: input.notes,
+          photoUrls: input.photo_urls,
+          userId: ctx.user.id
+        });
       }),
     
     update: protectedProcedure
       .input(z.object({
         id: z.string(),
-        rating: z.number().min(1).max(5).optional(),
-        effects: z.array(z.string()).optional(),
+        method: z.enum(['joint', 'bong', 'pipe', 'vape', 'edible', 'dab', 'other']).optional(),
+        amount: z.number().positive().optional(),
+        amount_unit: z.enum(['g', 'mg']).optional(),
+        mood_before: z.number().min(1).max(5).optional(),
+        mood_after: z.number().min(1).max(5).optional(),
+        effects_tags: z.array(z.string()).optional(),
         notes: z.string().optional(),
+        photo_urls: z.array(z.string()).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const { id, ...updates } = input;
+        const { id, ...rest } = input;
+        const updates = {
+          method: rest.method,
+          amount: rest.amount,
+          amountUnit: rest.amount_unit,
+          moodBefore: rest.mood_before,
+          moodAfter: rest.mood_after,
+          effects: rest.effects_tags,
+          notes: rest.notes,
+          photoUrls: rest.photo_urls,
+        };
         return sessionsController.updateSessionHelper(id, updates, ctx.user.id);
       }),
     
