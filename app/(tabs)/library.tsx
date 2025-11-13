@@ -16,9 +16,11 @@ import {
   Alert,
   Modal,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { Search, Plus, Check, Camera, Upload, X } from "lucide-react-native";
 import { router } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 
 const STRAIN_TYPES: StrainType[] = ["indica", "sativa", "hybrid"];
 const TERPS: TerpProfile[] = [
@@ -50,6 +52,7 @@ export default function LibraryScreen() {
 
   const [showAdd, setShowAdd] = useState<boolean>(false);
   const [showScanModal, setShowScanModal] = useState<boolean>(false);
+  const [isUploadProcessing, setIsUploadProcessing] = useState(false);
   const [newName, setNewName] = useState<string>("");
   const [newType, setNewType] = useState<StrainType>("hybrid");
 
@@ -162,6 +165,180 @@ export default function LibraryScreen() {
       setNewTerps(new Set());
     } catch (e) {
       Alert.alert("Failed", "Could not add strain");
+    }
+  };
+
+  const handleUploadPhoto = async () => {
+    try {
+      setShowScanModal(false);
+      setIsUploadProcessing(true);
+
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Please grant photo library access to upload images"
+        );
+        setIsUploadProcessing(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images" as any,
+        allowsMultipleSelection: true,
+        selectionLimit: 2,
+        base64: true,
+        quality: 0.8,
+      });
+
+      if (result.canceled) {
+        setIsUploadProcessing(false);
+        return;
+      }
+
+      if (result.assets.length === 0) {
+        Alert.alert("No Image", "Please select at least one image");
+        setIsUploadProcessing(false);
+        return;
+      }
+
+      console.log(`Processing ${result.assets.length} image(s)...`);
+
+      const analysisPrompt = `Analyze ${result.assets.length === 2 ? "these 2 images of the same" : "this"} cannabis/weed container and extract ALL visible information about the strain. ${result.assets.length === 2 ? "Combine information from both images." : ""} Return a JSON object with this exact structure:
+
+{
+  "name": "strain name (REQUIRED)",
+  "type": "indica" or "sativa" or "hybrid" (REQUIRED, if not visible, make educated guess based on name or appearance)",
+  "thc": "THC percentage if visible (e.g., '24.5%')",
+  "cbd": "CBD percentage if visible (e.g., '0.3%')",
+  "terpenes": ["array of terpene names if visible, e.g., 'limonene', 'myrcene', 'pinene', 'caryophyllene', 'linalool', 'humulene', 'terpinolene'"],
+  "breeder": "breeder/brand name if visible",
+  "description": "any visible description or effects",
+  "batch": "batch number if visible",
+  "harvest_date": "harvest date if visible",
+  "package_date": "package date if visible",
+  "lab": "lab name if visible"
+}
+
+IMPORTANT: 
+- Only include fields with visible information
+- For "type", if you see words like "indica", "sativa", or "hybrid" on the label, use that. Otherwise make an educated guess.
+- Be thorough - extract ALL text visible on the container${result.assets.length === 2 ? " from BOTH images" : ""}
+- If you can't find the strain name, look for any product name or prominent text`;
+
+      const { generateText } = await import("@rork-ai/toolkit-sdk");
+
+      const contentParts: Array<{ type: "text"; text: string } | { type: "image"; image: string }> = [
+        { type: "text", text: analysisPrompt },
+      ];
+
+      for (const asset of result.assets) {
+        if (asset.base64) {
+          contentParts.push({
+            type: "image",
+            image: `data:image/jpeg;base64,${asset.base64}`,
+          });
+        }
+      }
+
+      const response = await generateText({
+        messages: [
+          {
+            role: "user",
+            content: contentParts,
+          },
+        ],
+      });
+
+      console.log("AI Response:", response);
+
+      let parsed: any;
+      try {
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("No JSON found in response");
+        }
+      } catch (parseError) {
+        console.error("Failed to parse AI response:", parseError);
+        Alert.alert(
+          "Scan Failed",
+          "Could not extract strain information from the image(s). Please try again with better lighting or a clearer view of the label."
+        );
+        setIsUploadProcessing(false);
+        return;
+      }
+
+      if (!parsed.name || !parsed.type) {
+        Alert.alert(
+          "Incomplete Data",
+          "Could not find essential strain information. Please try again."
+        );
+        setIsUploadProcessing(false);
+        return;
+      }
+
+      const validTerpenes: TerpProfile[] = [];
+      if (parsed.terpenes && Array.isArray(parsed.terpenes)) {
+        const validTerpeneNames: TerpProfile[] = [
+          "limonene",
+          "myrcene",
+          "pinene",
+          "caryophyllene",
+          "linalool",
+          "humulene",
+          "terpinolene",
+        ];
+        for (const terp of parsed.terpenes) {
+          const normalized = terp.toLowerCase() as TerpProfile;
+          if (validTerpeneNames.includes(normalized)) {
+            validTerpenes.push(normalized);
+          }
+        }
+      }
+
+      const strainType: StrainType =
+        parsed.type === "indica" || parsed.type === "sativa" || parsed.type === "hybrid"
+          ? parsed.type
+          : "hybrid";
+
+      let descriptionParts: string[] = [];
+      if (parsed.description) descriptionParts.push(parsed.description);
+      if (parsed.thc) descriptionParts.push(`THC: ${parsed.thc}`);
+      if (parsed.cbd) descriptionParts.push(`CBD: ${parsed.cbd}`);
+      if (parsed.batch) descriptionParts.push(`Batch: ${parsed.batch}`);
+      if (parsed.harvest_date) descriptionParts.push(`Harvested: ${parsed.harvest_date}`);
+      if (parsed.package_date) descriptionParts.push(`Packaged: ${parsed.package_date}`);
+      if (parsed.lab) descriptionParts.push(`Lab: ${parsed.lab}`);
+
+      const newStrain = createStrain(parsed.name, strainType, {
+        terp_profile: validTerpenes.length > 0 ? validTerpenes : undefined,
+        description: descriptionParts.join("\n") || undefined,
+        breeder: parsed.breeder || undefined,
+        source: "user",
+        created_by: "user_default",
+      });
+
+      await addStrain(newStrain);
+
+      Alert.alert(
+        "Strain Added!",
+        `${parsed.name} has been added to your library`,
+        [
+          {
+            text: "OK",
+            onPress: () => {},
+          },
+        ]
+      );
+
+      setBannerText(`Added ${parsed.name}`);
+      setIsUploadProcessing(false);
+    } catch (error) {
+      console.error("Error uploading and scanning:", error);
+      Alert.alert("Error", "Failed to process images. Please try again.");
+      setIsUploadProcessing(false);
     }
   };
 
@@ -391,17 +568,19 @@ export default function LibraryScreen() {
 
             <TouchableOpacity
               style={styles.modalOption}
-              onPress={() => {
-                setShowScanModal(false);
-                Alert.alert("Coming Soon", "Photo upload feature will be available soon!");
-              }}
+              onPress={handleUploadPhoto}
+              disabled={isUploadProcessing}
             >
               <View style={styles.modalOptionIcon}>
-                <Upload size={28} color="#4ade80" />
+                {isUploadProcessing ? (
+                  <ActivityIndicator size="small" color="#4ade80" />
+                ) : (
+                  <Upload size={28} color="#4ade80" />
+                )}
               </View>
               <View style={styles.modalOptionText}>
                 <Text style={styles.modalOptionTitle}>Upload Photo</Text>
-                <Text style={styles.modalOptionDesc}>Choose from your gallery</Text>
+                <Text style={styles.modalOptionDesc}>Select up to 2 photos (same strain)</Text>
               </View>
             </TouchableOpacity>
           </View>
