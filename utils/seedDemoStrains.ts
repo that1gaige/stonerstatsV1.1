@@ -107,30 +107,87 @@ export const DEMO_STRAINS_DATA = [
   { name: "Cherry Diesel", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "limonene" as const], description: "Lineage: Cherry OG x Turbo Diesel. Cherry gas fuel; balanced energetic mood." },
   { name: "Berry White", type: "hybrid" as const, terp_profile: ["myrcene" as const, "pinene" as const], description: "Lineage: Blueberry x White Widow. Sweet berry pine; relaxed mellow high." },
   { name: "Cherry Bomb", type: "sativa" as const, terp_profile: ["caryophyllene" as const, "limonene" as const], description: "Lineage: Cherry Thai x Cherry AK-47. Tart cherry spice; energetic creative buzz." },
+  { name: "9 Pound Hammer", type: "indica" as const, terp_profile: ["myrcene" as const, "limonene" as const, "caryophyllene" as const], description: "Lineage: Gooberry x Hells OG x Jack the Ripper. Grape-citrus and earth; heavy, sleep-ready indica stone." },
+  { name: "Hindu Kush", type: "indica" as const, terp_profile: ["myrcene" as const, "limonene" as const, "caryophyllene" as const], description: "Lineage: Hindu Kush landrace. Sweet pine and hashy earth; classic, steady full-body calm." },
+  { name: "Harlequin", type: "sativa" as const, terp_profile: ["myrcene" as const, "pinene" as const, "caryophyllene" as const], description: "Lineage: Colombian Gold x Thai x Swiss landrace. Herbal citrus; clear, CBD-forward daytime ease." },
+  { name: "Pure Michigan", type: "hybrid" as const, terp_profile: ["limonene" as const, "caryophyllene" as const, "myrcene" as const], description: "Lineage: Oreoz x Mendo Breath F2. Earthy sweet cream with citrus-pine; heavy, relaxing hybrid melt." },
+  { name: "Blue Cheese", type: "indica" as const, terp_profile: ["caryophyllene" as const, "limonene" as const, "humulene" as const], description: "Lineage: UK Cheese x Blueberry. Funky cheese and berries; calm, stoney indica comfort." },
+  { name: "NYC Sour Diesel", type: "sativa" as const, terp_profile: ["limonene" as const, "caryophyllene" as const, "myrcene" as const], description: "Lineage: Sour Diesel family. Sharp fuel and lemon zest; racy, city-bright head buzz." },
+  { name: "Super Boof", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "limonene" as const, "humulene" as const], description: "Lineage: Black Cherry Punch x Tropicana Cookies. Tangy cherry-orange; strong, floaty hybrid stone." },
+  { name: "Super Skunk", type: "hybrid" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "limonene" as const], description: "Lineage: Skunk #1 backcross. Classic skunk funk and sweet spice; balanced old-school high." },
+  { name: "Island Sweet Skunk", type: "sativa" as const, terp_profile: ["myrcene" as const, "limonene" as const, "pinene" as const], description: "Lineage: Skunk family. Tropical citrus and sweet funk; bright, focused island energy." },
+  { name: "Grapefruit", type: "sativa" as const, terp_profile: ["limonene" as const, "myrcene" as const, "caryophyllene" as const], description: "Lineage: Cinderella 99 line. Ruby grapefruit sweetness; zippy, mood-lifting headspace." },
+  { name: "Laughing Buddha", type: "sativa" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "limonene" as const], description: "Lineage: Thai x Jamaican. Spicy herbal citrus; giggly, social sativa vibe." },
+  { name: "Red Headed Stranger", type: "sativa" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "pinene" as const], description: "Lineage: William's Wonder x Haze. Spiced citrus and herb; alert, creative daytime ride." },
+  { name: "Schrom", type: "sativa" as const, terp_profile: ["limonene" as const, "myrcene" as const, "pinene" as const], description: "Lineage: Silver Haze family. Lemon-lime and pine; clear, buzzy head lift." },
+  { name: "Kali Mist", type: "sativa" as const, terp_profile: ["myrcene" as const, "limonene" as const, "caryophyllene" as const], description: "Lineage: Haze-forward blend. Dry spice and herb; classic cerebral sativa clarity." },
+  { name: "Pine Tar", type: "indica" as const, terp_profile: ["myrcene" as const, "pinene" as const, "caryophyllene" as const], description: "Lineage: Pakistani Kush line. Rich pine resin and earth; heavy, old-school body stone." },
+  { name: "Querkle", type: "indica" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "limonene" as const], description: "Lineage: Purple Urkle x Space Queen. Grape-berry candy; cozy, dreamy indica tilt." },
+  { name: "Alien Kush", type: "hybrid" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "limonene" as const], description: "Lineage: Alien Dawg lineage. Pine, spice, and gas; buzzy but relaxing cosmic hybrid." },
+  { name: "Space Cake", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "limonene" as const, "myrcene" as const], description: "Lineage: GSC x Snow Lotus. Frosted dough and earth; dense, floaty full-body high." },
+  { name: "Rocket Fuel", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "limonene" as const, "myrcene" as const], description: "Lineage: Jet Fuel OG x Face Off OG. Sharp gas and pine; strong, knockout evening hybrid." },
+  { name: "Alien Dawg", type: "indica" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "pinene" as const], description: "Lineage: Alien Technology x Chemdawg. Earthy chem and pine; sedating, weighty body calm." },
+  { name: "Star Child", type: "hybrid" as const, terp_profile: ["limonene" as const, "myrcene" as const, "caryophyllene" as const], description: "Lineage: spacey hybrid line. Bright citrus and sweet fruit; floaty, euphoric headspace." },
+  { name: "Stargazer", type: "indica" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "humulene" as const], description: "Lineage: indica-dominant hybrid. Spiced earth and berry; heavy, contemplative couch mode." },
+  { name: "Moon Cookies", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "limonene" as const, "humulene" as const], description: "Lineage: Cookies family cross. Sweet dough and gas; dense, spacey relaxation." },
+  { name: "Space Candy", type: "hybrid" as const, terp_profile: ["limonene" as const, "caryophyllene" as const, "myrcene" as const], description: "Lineage: Cotton Candy x Space Queen. Sour candy fruit; upbeat, heady hybrid." },
+  { name: "Space Dawg", type: "hybrid" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "limonene" as const], description: "Lineage: Chemdawg 4 x Space Queen. Funky chem-fruit mix; potent, stoney cruise." },
+  { name: "Alien Abduction", type: "hybrid" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "limonene" as const], description: "Lineage: Alien OG line. Skunky pine and gas; intense, head-heavy hybrid." },
+  { name: "Alien Bubba", type: "indica" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "humulene" as const], description: "Lineage: Bubba Kush x Alien Kush. Earthy coffee and kush; deeply sedating nightcap." },
+  { name: "Alien Asshat", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "limonene" as const, "myrcene" as const], description: "Lineage: Alien family hybrid. Loud funk and citrus; wild, spacey high with a goofy edge." },
+  { name: "Pineapple Chunk", type: "hybrid" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "limonene" as const], description: "Lineage: Cheese x Skunk #1 x Pineapple. Funky pineapple and earth; strong, relaxing hybrid." },
+  { name: "Critical Mass", type: "indica" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "humulene" as const], description: "Lineage: Afghani x Skunk #1. Musky skunk and wood; dense, sleepy indica." },
+  { name: "White Rhino", type: "indica" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "pinene" as const], description: "Lineage: White Widow x North American indica. Pungent wood and spice; heavy, slow-body stone." },
+  { name: "Afghan Kush", type: "indica" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "pinene" as const], description: "Lineage: Afghani landrace. Hashy earth and pine; classic, sedating body stone." },
+  { name: "Platinum OG", type: "indica" as const, terp_profile: ["caryophyllene" as const, "myrcene" as const, "limonene" as const], description: "Lineage: Master Kush x OG Kush x Purps. Heavy gas and kush; dense, sleepy relaxation." },
+  { name: "Skywalker", type: "hybrid" as const, terp_profile: ["myrcene" as const, "pinene" as const, "caryophyllene" as const], description: "Lineage: Blueberry x Mazar. Berry, pine, and earth; mellow galactic calm." },
+  { name: "Star Dawg", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "limonene" as const, "myrcene" as const], description: "Lineage: Chemdawg 4 x Tres Dawg. Diesel funk; uplifting, spacey hybrid buzz." },
+  { name: "Kosher Kush", type: "indica" as const, terp_profile: ["caryophyllene" as const, "myrcene" as const, "limonene" as const], description: "Lineage: OG Kush family. Spicy pine and earth; heavy, couchy night strain." },
+  { name: "LA Kush Cake", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "limonene" as const, "humulene" as const], description: "Lineage: Kush Mints x Wedding Cake. Sweet dough and gas; calm, dessert-like stone." },
+  { name: "Wedding Pie", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "limonene" as const, "linalool" as const], description: "Lineage: Wedding Cake x Grape Pie. Sugary grape and vanilla; cozy, blissful hybrid." },
+  { name: "GMO Cookies", type: "indica" as const, terp_profile: ["caryophyllene" as const, "limonene" as const, "myrcene" as const], description: "Lineage: Girl Scout Cookies x Chemdawg. Garlic, gas, and cookie dough; powerful couch-lock." },
+  { name: "Garlic Breath", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "myrcene" as const, "humulene" as const], description: "Lineage: GMO x Mendo Breath. Savory garlic and earth; slow, stoney relaxation." },
+  { name: "Donny Burger", type: "indica" as const, terp_profile: ["caryophyllene" as const, "myrcene" as const, "limonene" as const], description: "Lineage: GMO x Larry OG. Funky garlic gas; heavy, mind-warping chill." },
+  { name: "Miracle Alien Cookies", type: "hybrid" as const, terp_profile: ["limonene" as const, "caryophyllene" as const, "myrcene" as const], description: "Lineage: Alien Cookies x Starfighter. Citrus cream and spice; euphoric, spacey uplift." },
+  { name: "MAC 1", type: "hybrid" as const, terp_profile: ["limonene" as const, "caryophyllene" as const, "humulene" as const], description: "Lineage: Miracle Alien Cookies selection. Creamy citrus and gas; balanced, heady clarity." },
+  { name: "Triangle Kush", type: "indica" as const, terp_profile: ["caryophyllene" as const, "myrcene" as const, "limonene" as const], description: "Lineage: Florida OG. Pungent earth and pine; slow, heavy kush sedation." },
+  { name: "SFV OG", type: "hybrid" as const, terp_profile: ["limonene" as const, "caryophyllene" as const, "myrcene" as const], description: "Lineage: OG Kush variant. Lemon-pine fuel; strong, chest-relaxing OG high." },
+  { name: "Larry OG", type: "hybrid" as const, terp_profile: ["limonene" as const, "pinene" as const, "caryophyllene" as const], description: "Lineage: OG Kush cut. Lemon pledge and pine; relaxed but functional OG calm." },
+  { name: "Do-Si-Dos 22", type: "indica" as const, terp_profile: ["caryophyllene" as const, "linalool" as const, "myrcene" as const], description: "Lineage: Do-Si-Dos phenotype. Sweet cookie spice; deep, tranquil body ease." },
+  { name: "Purple Urkle", type: "indica" as const, terp_profile: ["myrcene" as const, "linalool" as const, "caryophyllene" as const], description: "Lineage: Northern California purple line. Grape soda and skunk; dreamy, sedating night strain." },
+  { name: "Shishkaberry", type: "indica" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "linalool" as const], description: "Lineage: DJ Short Blueberry x Afghan. Sweet berry jam; mellow, sleepy body buzz." },
+  { name: "Critical Kush", type: "indica" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "humulene" as const], description: "Lineage: Critical Mass x OG Kush. Skunky pine and spice; very heavy, slow-moving calm." },
+  { name: "Pineapple Upside Down Cake", type: "hybrid" as const, terp_profile: ["limonene" as const, "myrcene" as const, "caryophyllene" as const], description: "Lineage: Pineapple Trainwreck x Cookie Monster. Sweet baked pineapple; relaxed, happy float." },
+  { name: "Lemon Tree", type: "hybrid" as const, terp_profile: ["limonene" as const, "caryophyllene" as const, "myrcene" as const], description: "Lineage: Lemon Skunk x Sour Diesel. Loud lemon peel and gas; upbeat, stoney headspace." },
+  { name: "Lemon Diesel", type: "hybrid" as const, terp_profile: ["limonene" as const, "caryophyllene" as const, "myrcene" as const], description: "Lineage: California Sour x Lost Coast OG. Sour lemon fuel; relaxed but hazy high." },
+  { name: "Key Lime Pie", type: "hybrid" as const, terp_profile: ["limonene" as const, "caryophyllene" as const, "linalool" as const], description: "Lineage: GSC phenotype. Lime zest and cream; dense, dreamy hybrid calm." },
+  { name: "Gorilla Cookies", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "humulene" as const, "limonene" as const], description: "Lineage: Thin Mint GSC x Gorilla Glue. Doughy gas; strong, glued-but-smiling high." },
+  { name: "Strawberry Banana", type: "hybrid" as const, terp_profile: ["myrcene" as const, "limonene" as const, "caryophyllene" as const], description: "Lineage: Banana Kush x Bubble Gum. Strawberry-banana smoothie; chill, euphoric buzz." },
+  { name: "Banana Split", type: "hybrid" as const, terp_profile: ["limonene" as const, "myrcene" as const, "caryophyllene" as const], description: "Lineage: Tangie x Banana Sherbet. Dessert-sweet citrus and banana; easygoing, playful mood." },
+  { name: "Banana Punch", type: "indica" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "limonene" as const], description: "Lineage: Banana OG x Purple Punch. Creamy fruit punch; relaxing, drowsy indica tilt." },
+  { name: "Ice Cream Man", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "limonene" as const, "humulene" as const], description: "Lineage: Jet Fuel Gelato x Legend Orange Apricot. Sweet cream and gas; smooth, mellow euphoria." },
+  { name: "Cookie Dough", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "humulene" as const, "limonene" as const], description: "Lineage: GSC line. Raw cookie dough sweetness; dense, relaxing full-body high." },
+  { name: "Vanilla Frosting", type: "hybrid" as const, terp_profile: ["limonene" as const, "caryophyllene" as const, "linalool" as const], description: "Lineage: Humboldt Frost OG x Humboldt Gelato. Frosted vanilla and fuel; calm, euphoric haze." },
+  { name: "Mint Chocolate Chip", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "limonene" as const, "myrcene" as const], description: "Lineage: Mystery Cookies x Green Ribbon BX. Minty chocolate and earth; balanced, cool-headed chill." },
+  { name: "Blueberry OG", type: "hybrid" as const, terp_profile: ["myrcene" as const, "pinene" as const, "caryophyllene" as const], description: "Lineage: Blueberry x OG Kush. Sweet berry and pine; heavy but happy hybrid stone." },
+  { name: "Cherry Garcia", type: "hybrid" as const, terp_profile: ["myrcene" as const, "caryophyllene" as const, "limonene" as const], description: "Lineage: 3X Crazy x Animal Cookies. Cherry ice cream vibes; chill, dreamy euphoria." },
+  { name: "Citrus Sap", type: "hybrid" as const, terp_profile: ["limonene" as const, "caryophyllene" as const, "myrcene" as const], description: "Lineage: Gorilla Glue #4 x Tangie. Sharp orange fuel; sticky, uplifting head high." },
+  { name: "Headbanger", type: "hybrid" as const, terp_profile: ["caryophyllene" as const, "myrcene" as const, "limonene" as const], description: "Lineage: Sour Diesel x Biker Kush. Sour fuel and kush; intense, ringing head buzz." }
 ] as const;
 
 export async function seedDemoStrains(): Promise<Strain[]> {
   console.log('[SeedStrains] Starting demo strain generation...');
-  
   const strains: Strain[] = [];
-  
   for (const data of DEMO_STRAINS_DATA) {
     try {
-      const strain = createStrain(data.name, data.type, {
-        terp_profile: [...data.terp_profile],
-        description: data.description,
-        source: "developer",
-      });
-      
+      const strain = createStrain(data.name, data.type, { terp_profile: [...data.terp_profile], description: data.description, source: "developer" });
       await writeStrainJSON(strain);
       strains.push(strain);
-      
       console.log(`[SeedStrains] ✓ Created ${data.name} (${strain.strain_id})`);
     } catch (error) {
       console.error(`[SeedStrains] Failed to create ${data.name}:`, error);
     }
   }
-  
   console.log(`[SeedStrains] Complete! Generated ${strains.length} strains.`);
   return strains;
 }
