@@ -1,19 +1,29 @@
-import { useApp } from "@/contexts/AppContext";
 import { StrainIcon } from "@/components/StrainIcon";
 import { getStrainIcon } from "@/constants/icons";
-import { SmokeSession } from "@/types";
-import { View, Text, StyleSheet, FlatList, ScrollView } from "react-native";
-import { useMemo } from "react";
+import { View, Text, StyleSheet, FlatList, ScrollView, ActivityIndicator } from "react-native";
+import { trpc } from "@/lib/trpc";
 
 export default function FeedScreen() {
-  const { sessions, strains, user } = useApp();
+  const feedQuery = trpc.sessions.getFeed.useQuery();
 
-  const feedSessions = useMemo(() => {
-    return sessions
-      .filter((s) => s.user_id === user.user_id)
-      .sort((a, b) => b.created_at.getTime() - a.created_at.getTime())
-      .slice(0, 50);
-  }, [sessions, user.user_id]);
+  if (feedQuery.isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4ade80" />
+      </View>
+    );
+  }
+
+  if (feedQuery.error) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Error loading feed</Text>
+        <Text style={styles.emptySubtext}>{feedQuery.error.message}</Text>
+      </View>
+    );
+  }
+
+  const feedSessions = feedQuery.data || [];
 
   const getTimeAgo = (date: Date): string => {
     const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -31,66 +41,65 @@ export default function FeedScreen() {
 
 
 
-  const renderSession = ({ item }: { item: SmokeSession }) => {
-    const strain = strains.find((s) => s.strain_id === item.strain_id);
-    if (!strain) return null;
+  const renderSession = ({ item }: { item: typeof feedSessions[0] }) => {
+    if (!item.user || !item.strain) return null;
 
     return (
       <View style={styles.sessionCard}>
         <View style={styles.cardHeader}>
           <View style={styles.userInfo}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{user.display_name[0]}</Text>
+              <Text style={styles.avatarText}>{item.user.display_name[0]}</Text>
             </View>
             <View>
-              <Text style={styles.userName}>{user.display_name}</Text>
-              <Text style={styles.timeAgo}>{getTimeAgo(item.created_at)}</Text>
+              <Text style={styles.userName}>{item.user.display_name}</Text>
+              <Text style={styles.timeAgo}>{getTimeAgo(item.session.created_at)}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.strainRow}>
           <StrainIcon
-            params={strain.icon_render_params}
+            params={item.strain.icon_render_params}
             size={40}
-            baseLeafSource={getStrainIcon(strain)}
-            fillSeedUUID={strain.strain_id}
+            baseLeafSource={getStrainIcon(item.strain)}
+            fillSeedUUID={item.strain.strain_id}
           />
           <View style={styles.strainDetails}>
-            <Text style={styles.strainName}>{strain.name}</Text>
-            <Text style={styles.strainType}>{strain.type}</Text>
+            <Text style={styles.strainName}>{item.strain.name}</Text>
+            <Text style={styles.strainType}>{item.strain.type}</Text>
           </View>
         </View>
 
         <View style={styles.sessionDetails}>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Method</Text>
-            <Text style={styles.detailValue}>{item.method}</Text>
+            <Text style={styles.detailValue}>{item.session.method}</Text>
           </View>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Amount</Text>
             <Text style={styles.detailValue}>
-              {item.amount} {item.amount_unit}
+              {item.session.amount} {item.session.amount_unit}
             </Text>
           </View>
-          {item.mood_after && (
+          {item.session.mood_after && (
             <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Mood</Text>
               <Text style={styles.detailValue}>
-                {item.mood_before || "?"} → {item.mood_after}
+                {item.session.mood_before || "?"} → {item.session.mood_after}
               </Text>
             </View>
           )}
         </View>
 
-        {item.effects_tags.length > 0 && (
+        {item.session.effects_tags.length > 0 && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.effectsRow}
             contentContainerStyle={styles.effectsContent}
           >
-            {item.effects_tags.slice(0, 5).map((effect, i) => (
+            {item.session.effects_tags.slice(0, 5).map((effect, i) => (
               <View key={i} style={styles.effectChip}>
                 <Text style={styles.effectText}>{effect}</Text>
               </View>
@@ -98,9 +107,9 @@ export default function FeedScreen() {
           </ScrollView>
         )}
 
-        {item.notes && (
+        {item.session.notes && (
           <Text style={styles.notes} numberOfLines={3}>
-            {item.notes}
+            {item.session.notes}
           </Text>
         )}
       </View>
@@ -112,7 +121,7 @@ export default function FeedScreen() {
       <FlatList
         data={feedSessions}
         renderItem={renderSession}
-        keyExtractor={(item) => item.session_id}
+        keyExtractor={(item) => item.session.session_id}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -131,6 +140,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#0a0a0a",
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#0a0a0a",
+    alignItems: "center",
+    justifyContent: "center",
   },
   listContent: {
     padding: 16,

@@ -1,11 +1,13 @@
 import { useApp } from "@/contexts/AppContext";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-import { Settings } from "lucide-react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { Settings, LogOut } from "lucide-react-native";
+import { trpc } from "@/lib/trpc";
 
 export default function ProfileScreen() {
-  const { user, sessions } = useApp();
+  const { user, logout } = useApp();
+  const sessionsQuery = trpc.sessions.getUserSessions.useQuery();
 
-  const userSessions = sessions.filter((s) => s.user_id === user.user_id);
+  const userSessions = sessionsQuery.data || [];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -36,9 +38,9 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.section}>
-        <TouchableOpacity style={styles.settingRow}>
-          <Settings size={20} color="#4ade80" />
-          <Text style={styles.settingLabel}>Edit Profile</Text>
+        <TouchableOpacity style={styles.settingRow} onPress={logout}>
+          <LogOut size={20} color="#f87171" />
+          <Text style={[styles.settingLabel, {color: "#f87171"}]}>Log Out</Text>
         </TouchableOpacity>
         
         <View style={styles.settingRow}>

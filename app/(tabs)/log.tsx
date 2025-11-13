@@ -1,7 +1,6 @@
-import { useApp } from "@/contexts/AppContext";
 import { StrainIcon } from "@/components/StrainIcon";
 import { getStrainIcon } from "@/constants/icons";
-import { EffectTag, Method, SmokeSession, Strain } from "@/types";
+import { EffectTag, Method, Strain } from "@/types";
 import { useMemo, useState } from "react";
 import {
   View,
@@ -11,9 +10,12 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Check, Scan } from "lucide-react-native";
 import { router } from "expo-router";
+import { trpc } from "@/lib/trpc";
+import { useApp } from "@/contexts/AppContext";
 
 const METHODS: Method[] = ["joint", "bong", "pipe", "vape", "edible", "dab"];
 const EFFECTS: EffectTag[] = [
@@ -30,8 +32,26 @@ const EFFECTS: EffectTag[] = [
 ];
 
 export default function LogScreen() {
-  const { strains, user, addSession } = useApp();
+  const { user } = useApp();
+  const strainsQuery = trpc.strains.getAll.useQuery();
+  const createSessionMutation = trpc.sessions.create.useMutation({
+    onSuccess: () => {
+      Alert.alert("Success", "Session logged!");
+      setSelectedStrain(null);
+      setMethod("joint");
+      setAmount("0.5");
+      setMoodBefore(null);
+      setMoodAfter(null);
+      setSelectedEffects(new Set());
+      setNotes("");
+    },
+    onError: (error) => {
+      Alert.alert("Error", error.message);
+    },
+  });
+
   const [selectedStrain, setSelectedStrain] = useState<Strain | null>(null);
+  const strains = strainsQuery.data || [];
   const dedupedStrains = useMemo<Strain[]>(() => {
     const m = new Map<string, Strain>();
     for (const s of strains) {
@@ -76,9 +96,7 @@ export default function LogScreen() {
       return;
     }
 
-    const session: SmokeSession = {
-      session_id: `session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-      user_id: user.user_id,
+    createSessionMutation.mutate({
       strain_id: selectedStrain.strain_id,
       method,
       amount: amountNum,
@@ -87,20 +105,7 @@ export default function LogScreen() {
       mood_after: moodAfter || undefined,
       effects_tags: Array.from(selectedEffects),
       notes: notes.trim() || undefined,
-      created_at: new Date(),
-    };
-
-    await addSession(session);
-
-    setSelectedStrain(null);
-    setMethod("joint");
-    setAmount("0.5");
-    setMoodBefore(null);
-    setMoodAfter(null);
-    setSelectedEffects(new Set());
-    setNotes("");
-
-    Alert.alert("Success", "Session logged!");
+    });
   };
 
   return (
@@ -281,8 +286,16 @@ export default function LogScreen() {
         />
       </View>
 
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-        <Text style={styles.submitButtonText}>Log Session</Text>
+      <TouchableOpacity 
+        style={[styles.submitButton, createSessionMutation.isPending && styles.submitButtonDisabled]} 
+        onPress={handleSubmit}
+        disabled={createSessionMutation.isPending}
+      >
+        {createSessionMutation.isPending ? (
+          <ActivityIndicator color="#0a0a0a" />
+        ) : (
+          <Text style={styles.submitButtonText}>Log Session</Text>
+        )}
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
@@ -488,6 +501,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     marginTop: 8,
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
   },
   submitButtonText: {
     fontSize: 18,
