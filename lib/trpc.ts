@@ -15,6 +15,7 @@ export const trpcClient = trpc.createClient({
   links: [
     httpLink({
       url: `${getBaseUrl()}/api/trpc`,
+      transformer: undefined,
       async headers() {
         const token = await AsyncStorage.getItem("stonerstats_auth_token");
         console.log('[tRPC] Request with token:', token ? 'present' : 'none');
