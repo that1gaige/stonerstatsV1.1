@@ -254,21 +254,33 @@ IMPORTANT:
 
       let parsed: any;
       try {
+        if (!response || typeof response !== 'string') {
+          throw new Error("Invalid response from AI");
+        }
+
         let cleanedResponse = response.trim();
+        
+        if (cleanedResponse.length === 0) {
+          throw new Error("Empty response from AI");
+        }
         
         const codeBlockMatch = cleanedResponse.match(/```(?:json)?\s*([\s\S]*?)```/);
         if (codeBlockMatch) {
           cleanedResponse = codeBlockMatch[1].trim();
         }
         
+        let jsonStr = cleanedResponse;
         const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error("No JSON object found in response");
+        if (jsonMatch) {
+          jsonStr = jsonMatch[0];
         }
         
-        let jsonStr = jsonMatch[0];
-        const bracketBalance = (jsonStr.match(/\{/g) || []).length - (jsonStr.match(/\}/g) || []).length;
-        if (bracketBalance !== 0) {
+        const openBraces = (jsonStr.match(/\{/g) || []).length;
+        const closeBraces = (jsonStr.match(/\}/g) || []).length;
+        
+        if (openBraces > closeBraces) {
+          jsonStr = jsonStr + '}'.repeat(openBraces - closeBraces);
+        } else if (closeBraces > openBraces) {
           const lastBrace = jsonStr.lastIndexOf('}');
           if (lastBrace !== -1) {
             jsonStr = jsonStr.substring(0, lastBrace + 1);
@@ -276,9 +288,10 @@ IMPORTANT:
         }
         
         parsed = JSON.parse(jsonStr);
-      } catch (parseError) {
+      } catch (parseError: any) {
         console.error("Failed to parse AI response:", parseError);
         console.error("Raw response:", response);
+        console.error("Parse error message:", parseError?.message || String(parseError));
         Alert.alert(
           "Scan Failed",
           "Could not extract strain information from the image(s). Please try again with better lighting or a clearer view of the label."
