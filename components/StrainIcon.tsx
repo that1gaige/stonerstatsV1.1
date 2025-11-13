@@ -39,12 +39,22 @@ export function StrainIcon({ params, size = 64, baseLeafSource, fillSeedUUID, te
 
   const radius = Math.round(size / 2);
 
-  const leafSource = (baseLeafSource && typeof baseLeafSource === 'object' && Object.keys(baseLeafSource).length > 0) 
-    ? baseLeafSource 
-    : require("@/assets/images/icontemp.png");
-  
-  console.log('StrainIcon baseLeafSource:', baseLeafSource);
-  console.log('StrainIcon leafSource:', leafSource);
+  const leafSource = (() => {
+    if (!baseLeafSource) {
+      console.log('StrainIcon: No baseLeafSource provided, using fallback');
+      return require("@/assets/images/icontemp.png");
+    }
+    if (typeof baseLeafSource !== 'object') {
+      console.log('StrainIcon: baseLeafSource is not an object:', baseLeafSource);
+      return require("@/assets/images/icontemp.png");
+    }
+    if (Object.keys(baseLeafSource).length === 0) {
+      console.log('StrainIcon: baseLeafSource is empty object');
+      return require("@/assets/images/icontemp.png");
+    }
+    console.log('StrainIcon: Using provided baseLeafSource:', JSON.stringify(baseLeafSource));
+    return baseLeafSource;
+  })();
 
   const backgroundStops: GradientStop[] = (() => {
     if (!gradient.enabled) return [];
