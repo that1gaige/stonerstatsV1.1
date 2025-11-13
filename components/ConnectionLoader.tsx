@@ -78,8 +78,8 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
         const xhr = new XMLHttpRequest();
         const timeout = setTimeout(() => {
           xhr.abort();
-          resolve({ success: false, error: 'Connection timeout - server not responding' });
-        }, 8000);
+          resolve({ success: false, error: 'Connection timeout (15s) - server not responding. Make sure server is running and device is on same WiFi.' });
+        }, 15000);
 
         xhr.onload = () => {
           clearTimeout(timeout);
@@ -107,7 +107,7 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
         xhr.onabort = () => {
           clearTimeout(timeout);
           console.error('[ConnectionLoader] XHR aborted');
-          resolve({ success: false, error: 'Request aborted' });
+          resolve({ success: false, error: 'Request aborted - likely due to timeout or network issue. Try Expo Go app on mobile device.' });
         };
 
         xhr.open('GET', `${LOCALBACKEND_CONFIG.BASE_URL}/api/health`, true);
@@ -198,11 +198,12 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
 
         <View style={styles.helpContainer}>
           <Text style={styles.helpTitle}>Troubleshooting:</Text>
-          <Text style={styles.helpText}>• Ensure your server is running (check console)</Text>
-          <Text style={styles.helpText}>• Testing on mobile? Use Expo Go app with QR code</Text>
-          <Text style={styles.helpText}>• Testing on web? It may not work due to browser security</Text>
-          <Text style={styles.helpText}>• Check device is on same WiFi network</Text>
-          <Text style={styles.helpText}>• Update IP in constants/localBackendConfig.ts</Text>
+          <Text style={styles.helpText}>• Ensure your server is running (check server console)</Text>
+          <Text style={styles.helpText}>• ⚠️ Web preview will NOT work - use Expo Go app on mobile</Text>
+          <Text style={styles.helpText}>• Scan QR code with Expo Go app on your phone</Text>
+          <Text style={styles.helpText}>• Ensure phone is on same WiFi as computer</Text>
+          <Text style={styles.helpText}>• Server IP: {LOCALBACKEND_CONFIG.BASE_URL}</Text>
+          <Text style={styles.helpText}>• Update IP in constants/localBackendConfig.ts if needed</Text>
         </View>
       </View>
 
