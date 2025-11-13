@@ -1,5 +1,8 @@
 export const LOCALBACKEND_CONFIG = {
-  BASE_URL: 'http://localhost:4000',
+  // Change this to your computer's IP address when testing on mobile
+  // Run 'ipconfig' in Command Prompt to find your IPv4 Address
+  // Example: 'http://192.168.1.100:4000'
+  BASE_URL: 'http://localhost:4000', // <-- Replace with your IP
   API_ENDPOINTS: {
     HEALTH: '/api/health',
     AUTH: {
