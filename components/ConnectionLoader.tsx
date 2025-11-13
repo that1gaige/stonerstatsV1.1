@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
-import { LOCALBACKEND_CONFIG } from '@/constants/localBackendConfig';
+import { View, Text, StyleSheet, Animated, Easing, TouchableOpacity } from 'react-native';
+import { LOCALBACKEND_CONFIG, SERVER_OPTIONS, setLocalBackendUrl, ServerOption } from '@/constants/localBackendConfig';
 
 interface ConnectionLoaderProps {
   onConnectionSuccess: () => void;
@@ -10,6 +10,8 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
   const [attemptCount, setAttemptCount] = useState(1);
   const [lastError, setLastError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
+  const [selectedServer, setSelectedServer] = useState<ServerOption>(SERVER_OPTIONS[0]);
+  const [showServerOptions, setShowServerOptions] = useState(false);
   
   const spinValue = useRef(new Animated.Value(0)).current;
   const pulseValue = useRef(new Animated.Value(1)).current;
@@ -53,6 +55,16 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
+
+  const handleServerChange = (server: ServerOption) => {
+    console.log('[ConnectionLoader] Switching to server:', server.name, server.url);
+    setSelectedServer(server);
+    setLocalBackendUrl(server.url);
+    setShowServerOptions(false);
+    setLastError(null);
+    setCountdown(0);
+    setAttemptCount(1);
+  };
 
   const checkConnection = async () => {
     console.log(`[ConnectionLoader] ========== Attempt ${attemptCount} ==========`);
@@ -180,9 +192,52 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
         <Text style={styles.subtitle}>Attempt {attemptCount}</Text>
 
         <View style={styles.serverInfo}>
-          <Text style={styles.serverLabel}>Server:</Text>
-          <Text style={styles.serverUrl}>{LOCALBACKEND_CONFIG.BASE_URL}</Text>
+          <View style={styles.serverHeader}>
+            <View>
+              <Text style={styles.serverLabel}>Server:</Text>
+              <Text style={styles.serverName}>{selectedServer.name}</Text>
+              <Text style={styles.serverUrl}>{selectedServer.url}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.changeServerButton}
+              onPress={() => setShowServerOptions(!showServerOptions)}
+            >
+              <Text style={styles.changeServerButtonText}>
+                {showServerOptions ? '✕' : '⚙'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {showServerOptions && (
+          <View style={styles.serverOptionsContainer}>
+            <Text style={styles.serverOptionsTitle}>Select Server:</Text>
+            {SERVER_OPTIONS.map((server) => (
+              <TouchableOpacity
+                key={server.id}
+                style={[
+                  styles.serverOption,
+                  selectedServer.id === server.id && styles.serverOptionSelected,
+                ]}
+                onPress={() => handleServerChange(server)}
+              >
+                <View style={styles.serverOptionContent}>
+                  <Text style={[
+                    styles.serverOptionName,
+                    selectedServer.id === server.id && styles.serverOptionNameSelected,
+                  ]}>
+                    {server.name}
+                  </Text>
+                  <Text style={styles.serverOptionUrl}>{server.url}</Text>
+                  <Text style={styles.serverOptionDescription}>{server.description}</Text>
+                </View>
+                {selectedServer.id === server.id && (
+                  <Text style={styles.checkmark}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {lastError && (
           <View style={styles.errorContainer}>
@@ -301,16 +356,99 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2a2a2a',
   },
+  serverHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
   serverLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666',
     marginBottom: 4,
     fontWeight: '600' as const,
+    textTransform: 'uppercase' as const,
+  },
+  serverName: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '700' as const,
+    marginBottom: 4,
   },
   serverUrl: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#4ade80',
     fontWeight: '500' as const,
+  },
+  changeServerButton: {
+    backgroundColor: '#2a2a2a',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
+  },
+  changeServerButtonText: {
+    fontSize: 18,
+    color: '#4ade80',
+  },
+  serverOptionsContainer: {
+    backgroundColor: '#0f0f0f',
+    padding: 12,
+    borderRadius: 12,
+    width: '100%',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  serverOptionsTitle: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: '#888',
+    marginBottom: 12,
+    textTransform: 'uppercase' as const,
+  },
+  serverOption: {
+    backgroundColor: '#1a1a1a',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  serverOptionSelected: {
+    borderColor: '#4ade80',
+    backgroundColor: '#1a2a1a',
+  },
+  serverOptionContent: {
+    flex: 1,
+  },
+  serverOptionName: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#fff',
+    marginBottom: 4,
+  },
+  serverOptionNameSelected: {
+    color: '#4ade80',
+  },
+  serverOptionUrl: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 2,
+  },
+  serverOptionDescription: {
+    fontSize: 10,
+    color: '#555',
+  },
+  checkmark: {
+    fontSize: 20,
+    color: '#4ade80',
+    marginLeft: 8,
   },
   errorContainer: {
     backgroundColor: '#1a0a0a',
