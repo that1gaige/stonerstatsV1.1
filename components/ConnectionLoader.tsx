@@ -59,6 +59,18 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
     console.log('[ConnectionLoader] Server URL:', LOCALBACKEND_CONFIG.BASE_URL);
     console.log('[ConnectionLoader] Full health check URL:', `${LOCALBACKEND_CONFIG.BASE_URL}/api/health`);
     
+    const isWeb = typeof window !== 'undefined' && !window.navigator.product?.includes('ReactNative');
+    const isHttps = typeof window !== 'undefined' && window.location?.protocol === 'https:';
+    const targetIsHttp = LOCALBACKEND_CONFIG.BASE_URL.startsWith('http://');
+    
+    if (isWeb && isHttps && targetIsHttp) {
+      console.error('[ConnectionLoader] ⚠️ MIXED CONTENT BLOCKED BY BROWSER');
+      console.error('[ConnectionLoader] Cannot connect from HTTPS page to HTTP server');
+      console.error('[ConnectionLoader] Please use the Expo Go app on mobile or run locally with HTTP');
+      setLastError('Browser security blocked: Cannot connect from HTTPS to HTTP server. Please test on mobile device with Expo Go app.');
+      return;
+    }
+    
     try {
       console.log('[ConnectionLoader] Using XMLHttpRequest to bypass extension interference...');
       
@@ -186,9 +198,11 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
 
         <View style={styles.helpContainer}>
           <Text style={styles.helpTitle}>Troubleshooting:</Text>
-          <Text style={styles.helpText}>• Ensure your server is running</Text>
-          <Text style={styles.helpText}>• Check your device is on the same network</Text>
-          <Text style={styles.helpText}>• Verify the server IP address is correct</Text>
+          <Text style={styles.helpText}>• Ensure your server is running (check console)</Text>
+          <Text style={styles.helpText}>• Testing on mobile? Use Expo Go app with QR code</Text>
+          <Text style={styles.helpText}>• Testing on web? It may not work due to browser security</Text>
+          <Text style={styles.helpText}>• Check device is on same WiFi network</Text>
+          <Text style={styles.helpText}>• Update IP in constants/localBackendConfig.ts</Text>
         </View>
       </View>
 
