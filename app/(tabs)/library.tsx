@@ -555,7 +555,7 @@ IMPORTANT:
         </KeyboardAvoidingView>
       )}
 
-      {activeTab === "my-strains" && userStrains.length === 0 && !showAdd && (
+      {activeTab === "my-strains" && !showAdd && (
         <>
           <TouchableOpacity
             accessibilityRole="button"
