@@ -1,10 +1,10 @@
 import { ImageSourcePropType } from 'react-native';
 import { Strain, StrainType } from '@/types';
 
-export const ICON_INDICA: ImageSourcePropType = require('@/assets/images/iconindica.png');
-export const ICON_SATIVA: ImageSourcePropType = require('@/assets/images/iconsativa.png');
-export const ICON_HYBRID_A: ImageSourcePropType = require('@/assets/images/iconhybrid.png');
-export const ICON_HYBRID_B: ImageSourcePropType = require('@/assets/images/iconhybrid2.png');
+export const ICON_INDICA: ImageSourcePropType = require('@/assets/images/iconindica.svg');
+export const ICON_SATIVA: ImageSourcePropType = require('@/assets/images/iconsativa.svg');
+export const ICON_HYBRID_A: ImageSourcePropType = require('@/assets/images/iconhybrid.svg');
+export const ICON_HYBRID_B: ImageSourcePropType = require('@/assets/images/iconhybrid.svg');
 
 export function pickHybridIcon(seed: string): ImageSourcePropType {
   let hash = 0;
