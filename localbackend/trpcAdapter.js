@@ -6,7 +6,9 @@ const authController = require('./controllers/authController');
 const strainsController = require('./controllers/strainsController');
 const sessionsController = require('./controllers/sessionsController');
 
-const t = initTRPC.create();
+const t = initTRPC.create({
+  transformer: undefined,
+});
 
 const router = t.router;
 const publicProcedure = t.procedure;
