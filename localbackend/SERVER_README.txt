@@ -21,8 +21,11 @@ A self-contained Node.js/Express backend server for the StonerStats mobile app w
 ```bash
 cd localbackend
 npm install
+npm install superjson
 npm start
 ```
+
+**IMPORTANT:** You must install `superjson` dependency for the tRPC adapter to work properly.
 
 ## API Endpoints
 
