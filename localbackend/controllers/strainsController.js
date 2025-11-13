@@ -1,20 +1,32 @@
 const { v4: uuidv4 } = require('uuid');
-const { readJSONFile, writeJSONFile } = require('../config/dataManager');
+const { readUserJSONFile, writeUserJSONFile, readJSONFile } = require('../config/dataManager');
 
-const STRAINS_FILE = 'strains.json';
+const GLOBAL_STRAINS_FILE = 'global_strains.json';
 
-function getStrains() {
-  return readJSONFile(STRAINS_FILE);
+function getUserStrains(userId) {
+  return readUserJSONFile(userId, 'strains.json');
 }
 
-function saveStrains(strains) {
-  return writeJSONFile(STRAINS_FILE, strains);
+function saveUserStrains(userId, strains) {
+  return writeUserJSONFile(userId, 'strains.json', strains);
+}
+
+function getGlobalStrains() {
+  return readJSONFile(GLOBAL_STRAINS_FILE);
 }
 
 function getAllStrains(req, res) {
   try {
-    const strains = getStrains();
-    res.json(strains);
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const userStrains = getUserStrains(userId);
+    const globalStrains = getGlobalStrains();
+    
+    const allStrains = [...globalStrains, ...userStrains];
+    res.json(allStrains);
   } catch (error) {
     console.error('Error fetching strains:', error);
     res.status(500).json({ error: 'Failed to fetch strains' });
@@ -24,8 +36,15 @@ function getAllStrains(req, res) {
 function getStrainById(req, res) {
   try {
     const { id } = req.params;
-    const strains = getStrains();
-    const strain = strains.find(s => s.id === id);
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const userStrains = getUserStrains(userId);
+    const globalStrains = getGlobalStrains();
+    const allStrains = [...globalStrains, ...userStrains];
+    const strain = allStrains.find(s => s.id === id);
 
     if (!strain) {
       return res.status(404).json({ error: 'Strain not found' });
@@ -41,23 +60,29 @@ function getStrainById(req, res) {
 function createStrain(req, res) {
   try {
     const strainData = req.body;
+    const userId = req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
     if (!strainData.name) {
       return res.status(400).json({ error: 'Strain name is required' });
     }
 
-    const strains = getStrains();
+    const strains = getUserStrains(userId);
 
     const newStrain = {
       id: uuidv4(),
       ...strainData,
+      userId,
       createdAt: new Date().toISOString()
     };
 
     strains.push(newStrain);
-    saveStrains(strains);
+    saveUserStrains(userId, strains);
 
-    console.log(`New strain created: ${newStrain.name}`);
+    console.log(`New strain created: ${newStrain.name} by user ${userId}`);
 
     res.status(201).json(newStrain);
   } catch (error) {
@@ -70,22 +95,28 @@ function updateStrain(req, res) {
   try {
     const { id } = req.params;
     const updateData = req.body;
+    const userId = req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
-    const strains = getStrains();
-    const index = strains.findIndex(s => s.id === id);
+    const strains = getUserStrains(userId);
+    const index = strains.findIndex(s => s.id === id && s.userId === userId);
 
     if (index === -1) {
-      return res.status(404).json({ error: 'Strain not found' });
+      return res.status(404).json({ error: 'Strain not found or not authorized' });
     }
 
     strains[index] = {
       ...strains[index],
       ...updateData,
       id,
+      userId,
       updatedAt: new Date().toISOString()
     };
 
-    saveStrains(strains);
+    saveUserStrains(userId, strains);
 
     console.log(`Strain updated: ${strains[index].name}`);
 
@@ -99,16 +130,21 @@ function updateStrain(req, res) {
 function deleteStrain(req, res) {
   try {
     const { id } = req.params;
+    const userId = req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
-    const strains = getStrains();
-    const index = strains.findIndex(s => s.id === id);
+    const strains = getUserStrains(userId);
+    const index = strains.findIndex(s => s.id === id && s.userId === userId);
 
     if (index === -1) {
-      return res.status(404).json({ error: 'Strain not found' });
+      return res.status(404).json({ error: 'Strain not found or not authorized' });
     }
 
     const deletedStrain = strains.splice(index, 1)[0];
-    saveStrains(strains);
+    saveUserStrains(userId, strains);
 
     console.log(`Strain deleted: ${deletedStrain.name}`);
 
@@ -120,13 +156,16 @@ function deleteStrain(req, res) {
 }
 
 function getAllStrainsHelper(userId) {
-  const strains = getStrains();
-  return strains.filter(s => !s.userId || s.userId === userId);
+  const userStrains = getUserStrains(userId);
+  const globalStrains = getGlobalStrains();
+  return [...globalStrains, ...userStrains];
 }
 
 function getStrainByIdHelper(id, userId) {
-  const strains = getStrains();
-  const strain = strains.find(s => s.id === id);
+  const userStrains = getUserStrains(userId);
+  const globalStrains = getGlobalStrains();
+  const allStrains = [...globalStrains, ...userStrains];
+  const strain = allStrains.find(s => s.id === id);
 
   if (!strain) {
     throw new Error('Strain not found');
@@ -143,8 +182,12 @@ function createStrainHelper(strainData) {
   if (!strainData.name) {
     throw new Error('Strain name is required');
   }
+  
+  if (!strainData.userId) {
+    throw new Error('User ID is required');
+  }
 
-  const strains = getStrains();
+  const strains = getUserStrains(strainData.userId);
 
   const newStrain = {
     id: uuidv4(),
@@ -153,7 +196,7 @@ function createStrainHelper(strainData) {
   };
 
   strains.push(newStrain);
-  saveStrains(strains);
+  saveUserStrains(strainData.userId, strains);
 
   console.log(`New strain created: ${newStrain.name}`);
 
@@ -161,25 +204,22 @@ function createStrainHelper(strainData) {
 }
 
 function updateStrainHelper(id, updateData, userId) {
-  const strains = getStrains();
-  const index = strains.findIndex(s => s.id === id);
+  const strains = getUserStrains(userId);
+  const index = strains.findIndex(s => s.id === id && s.userId === userId);
 
   if (index === -1) {
-    throw new Error('Strain not found');
-  }
-
-  if (strains[index].userId && strains[index].userId !== userId) {
-    throw new Error('Not authorized');
+    throw new Error('Strain not found or not authorized');
   }
 
   strains[index] = {
     ...strains[index],
     ...updateData,
     id,
+    userId,
     updatedAt: new Date().toISOString()
   };
 
-  saveStrains(strains);
+  saveUserStrains(userId, strains);
 
   console.log(`Strain updated: ${strains[index].name}`);
 
@@ -187,19 +227,15 @@ function updateStrainHelper(id, updateData, userId) {
 }
 
 function deleteStrainHelper(id, userId) {
-  const strains = getStrains();
-  const index = strains.findIndex(s => s.id === id);
+  const strains = getUserStrains(userId);
+  const index = strains.findIndex(s => s.id === id && s.userId === userId);
 
   if (index === -1) {
-    throw new Error('Strain not found');
-  }
-
-  if (strains[index].userId && strains[index].userId !== userId) {
-    throw new Error('Not authorized');
+    throw new Error('Strain not found or not authorized');
   }
 
   const deletedStrain = strains.splice(index, 1)[0];
-  saveStrains(strains);
+  saveUserStrains(userId, strains);
 
   console.log(`Strain deleted: ${deletedStrain.name}`);
 

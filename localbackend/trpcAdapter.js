@@ -118,6 +118,45 @@ const appRouter = router({
       return sessionsController.getAllSessionsHelper(ctx.user.id);
     }),
     
+    getFeed: protectedProcedure.query(async ({ ctx }) => {
+      const sessionsData = sessionsController.getAllSessionsHelper(ctx.user.id);
+      const users = authController.verifyToken ? [ctx.user] : [];
+      
+      return sessionsData.map(session => {
+        const user = users.find(u => u.id === session.userId) || ctx.user;
+        const strain = strainsController.getStrainByIdHelper(session.strainId, ctx.user.id);
+        
+        return {
+          session: {
+            session_id: session.id,
+            user_id: session.userId,
+            strain_id: session.strainId,
+            method: session.method || 'joint',
+            amount: session.amount || 1,
+            amount_unit: session.amountUnit || 'g',
+            mood_before: session.moodBefore,
+            mood_after: session.moodAfter,
+            effects_tags: session.effects || [],
+            notes: session.notes,
+            photo_urls: session.photoUrls || [],
+            created_at: new Date(session.createdAt || Date.now()),
+          },
+          user: {
+            user_id: user.id,
+            display_name: user.username,
+            handle: user.username,
+            avatar_url: user.avatarUrl,
+          },
+          strain: strain ? {
+            strain_id: strain.id,
+            name: strain.name,
+            type: strain.type,
+            icon_render_params: strain.iconRenderParams || {},
+          } : null,
+        };
+      });
+    }),
+    
     getById: protectedProcedure
       .input(z.object({ id: z.string() }))
       .query(async ({ input, ctx }) => {

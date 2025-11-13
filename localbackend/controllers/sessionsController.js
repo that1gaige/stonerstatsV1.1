@@ -1,25 +1,31 @@
 const { v4: uuidv4 } = require('uuid');
-const { readJSONFile, writeJSONFile } = require('../config/dataManager');
+const { readUserJSONFile, writeUserJSONFile, readJSONFile } = require('../config/dataManager');
+const { getUserStrains, getGlobalStrains } = require('./strainsController');
 
-const SESSIONS_FILE = 'sessions.json';
-
-function getSessions() {
-  return readJSONFile(SESSIONS_FILE);
+function getUserSessions(userId) {
+  return readUserJSONFile(userId, 'sessions.json');
 }
 
-function saveSessions(sessions) {
-  return writeJSONFile(SESSIONS_FILE, sessions);
+function saveUserSessions(userId, sessions) {
+  return writeUserJSONFile(userId, 'sessions.json', sessions);
+}
+
+function getAllUsersIds() {
+  const { readJSONFile } = require('../config/dataManager');
+  const users = readJSONFile('users.json');
+  return users.map(u => u.id);
 }
 
 function getAllSessions(req, res) {
   try {
-    let sessions = getSessions();
-    
-    const { userId, limit } = req.query;
-    
-    if (userId) {
-      sessions = sessions.filter(s => s.userId === userId);
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
+    
+    let sessions = getUserSessions(userId);
+    
+    const { limit } = req.query;
     
     sessions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
@@ -37,8 +43,13 @@ function getAllSessions(req, res) {
 function getSessionById(req, res) {
   try {
     const { id } = req.params;
-    const sessions = getSessions();
-    const session = sessions.find(s => s.id === id);
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const sessions = getUserSessions(userId);
+    const session = sessions.find(s => s.id === id && s.userId === userId);
 
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
@@ -54,27 +65,29 @@ function getSessionById(req, res) {
 function createSession(req, res) {
   try {
     const sessionData = req.body;
-
-    if (!sessionData.userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+    const userId = req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     if (!sessionData.strainId && !sessionData.strainName) {
       return res.status(400).json({ error: 'Strain information is required' });
     }
 
-    const sessions = getSessions();
+    const sessions = getUserSessions(userId);
 
     const newSession = {
       id: uuidv4(),
       ...sessionData,
+      userId,
       createdAt: new Date().toISOString()
     };
 
     sessions.push(newSession);
-    saveSessions(sessions);
+    saveUserSessions(userId, sessions);
 
-    console.log(`New session created by user: ${newSession.userId}`);
+    console.log(`New session created by user: ${userId}`);
 
     res.status(201).json(newSession);
   } catch (error) {
@@ -87,22 +100,28 @@ function updateSession(req, res) {
   try {
     const { id } = req.params;
     const updateData = req.body;
+    const userId = req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
-    const sessions = getSessions();
-    const index = sessions.findIndex(s => s.id === id);
+    const sessions = getUserSessions(userId);
+    const index = sessions.findIndex(s => s.id === id && s.userId === userId);
 
     if (index === -1) {
-      return res.status(404).json({ error: 'Session not found' });
+      return res.status(404).json({ error: 'Session not found or not authorized' });
     }
 
     sessions[index] = {
       ...sessions[index],
       ...updateData,
       id,
+      userId,
       updatedAt: new Date().toISOString()
     };
 
-    saveSessions(sessions);
+    saveUserSessions(userId, sessions);
 
     console.log(`Session updated: ${id}`);
 
@@ -116,16 +135,21 @@ function updateSession(req, res) {
 function deleteSession(req, res) {
   try {
     const { id } = req.params;
+    const userId = req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
-    const sessions = getSessions();
-    const index = sessions.findIndex(s => s.id === id);
+    const sessions = getUserSessions(userId);
+    const index = sessions.findIndex(s => s.id === id && s.userId === userId);
 
     if (index === -1) {
-      return res.status(404).json({ error: 'Session not found' });
+      return res.status(404).json({ error: 'Session not found or not authorized' });
     }
 
     const deletedSession = sessions.splice(index, 1)[0];
-    saveSessions(sessions);
+    saveUserSessions(userId, sessions);
 
     console.log(`Session deleted: ${id}`);
 
@@ -137,22 +161,17 @@ function deleteSession(req, res) {
 }
 
 function getAllSessionsHelper(userId) {
-  let sessions = getSessions();
-  sessions = sessions.filter(s => s.userId === userId);
+  let sessions = getUserSessions(userId);
   sessions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   return sessions;
 }
 
 function getSessionByIdHelper(id, userId) {
-  const sessions = getSessions();
-  const session = sessions.find(s => s.id === id);
+  const sessions = getUserSessions(userId);
+  const session = sessions.find(s => s.id === id && s.userId === userId);
 
   if (!session) {
-    throw new Error('Session not found');
-  }
-
-  if (session.userId !== userId) {
-    throw new Error('Not authorized');
+    throw new Error('Session not found or not authorized');
   }
 
   return session;
@@ -167,7 +186,7 @@ function createSessionHelper(sessionData) {
     throw new Error('Strain information is required');
   }
 
-  const sessions = getSessions();
+  const sessions = getUserSessions(sessionData.userId);
 
   const newSession = {
     id: uuidv4(),
@@ -176,33 +195,30 @@ function createSessionHelper(sessionData) {
   };
 
   sessions.push(newSession);
-  saveSessions(sessions);
+  saveUserSessions(sessionData.userId, sessions);
 
-  console.log(`New session created by user: ${newSession.userId}`);
+  console.log(`New session created by user: ${sessionData.userId}`);
 
   return newSession;
 }
 
 function updateSessionHelper(id, updateData, userId) {
-  const sessions = getSessions();
-  const index = sessions.findIndex(s => s.id === id);
+  const sessions = getUserSessions(userId);
+  const index = sessions.findIndex(s => s.id === id && s.userId === userId);
 
   if (index === -1) {
-    throw new Error('Session not found');
-  }
-
-  if (sessions[index].userId !== userId) {
-    throw new Error('Not authorized');
+    throw new Error('Session not found or not authorized');
   }
 
   sessions[index] = {
     ...sessions[index],
     ...updateData,
     id,
+    userId,
     updatedAt: new Date().toISOString()
   };
 
-  saveSessions(sessions);
+  saveUserSessions(userId, sessions);
 
   console.log(`Session updated: ${id}`);
 
@@ -210,19 +226,15 @@ function updateSessionHelper(id, updateData, userId) {
 }
 
 function deleteSessionHelper(id, userId) {
-  const sessions = getSessions();
-  const index = sessions.findIndex(s => s.id === id);
+  const sessions = getUserSessions(userId);
+  const index = sessions.findIndex(s => s.id === id && s.userId === userId);
 
   if (index === -1) {
-    throw new Error('Session not found');
-  }
-
-  if (sessions[index].userId !== userId) {
-    throw new Error('Not authorized');
+    throw new Error('Session not found or not authorized');
   }
 
   const deletedSession = sessions.splice(index, 1)[0];
-  saveSessions(sessions);
+  saveUserSessions(userId, sessions);
 
   console.log(`Session deleted: ${id}`);
 

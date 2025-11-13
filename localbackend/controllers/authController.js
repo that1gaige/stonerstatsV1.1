@@ -5,11 +5,11 @@ const { readJSONFile, writeJSONFile } = require('../config/dataManager');
 const USERS_FILE = 'users.json';
 
 function getUsers() {
-  return readJSONFile(USERS_FILE);
+  return readJSONFile(USERS_FILE, true);
 }
 
 function saveUsers(users) {
-  return writeJSONFile(USERS_FILE, users);
+  return writeJSONFile(USERS_FILE, users, true);
 }
 
 function sanitizeUser(user) {

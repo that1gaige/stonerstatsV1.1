@@ -1,94 +1,80 @@
-# StonerStats Local Backend Server
+================================================================================
+                     STONERSTATS LOCAL BACKEND SETUP
+================================================================================
 
-A self-contained Node.js/Express backend server for the StonerStats mobile app with JSON-based storage.
+WHAT THIS IS:
+-------------
+This is a local backend server for the StonerStats app. It stores your data
+securely on your computer and allows the mobile app to sync with it.
 
-## Features
+REQUIREMENTS:
+-------------
+1. Node.js 16+ installed on your computer
+   Download from: https://nodejs.org/
 
-- REST API for authentication, strains, and sessions
-- JSON file-based database
-- Network accessible
-- CORS enabled
-- Windows batch file launcher
-- Optional standalone .exe build
+FIRST TIME SETUP:
+-----------------
+1. Copy this entire "localbackend" folder to your Desktop or Documents folder
 
-## Quick Start
+2. Open the folder and double-click: start_server.bat
+   - On first run, it will automatically install required packages
+   - This may take 1-2 minutes
 
-### Using Batch File
-1. Double-click `start_server.bat`
-2. Server will run at `http://localhost:4000`
+3. The server will start and show you:
+   - Local URL: http://localhost:4000
+   - Network URL: http://192.168.X.X:4000 (your computer's IP address)
 
-### Manual Start
-```bash
-cd localbackend
-npm install
-npm install superjson
-npm start
-```
+4. In your mobile app settings, enter the Network URL
+   - Use this URL to connect from your phone/tablet
+   - Make sure your device is on the same WiFi network as this computer
 
-**IMPORTANT:** You must install `superjson` dependency for the tRPC adapter to work properly.
+DAILY USE:
+----------
+1. Double-click start_server.bat to start the server
+2. Leave the window open while using the app
+3. Close the window or press Ctrl+C to stop the server
 
-## API Endpoints
+DATA STORAGE:
+-------------
+Your data is stored in the "data" folder with this structure:
+- data/users.json (encrypted user accounts)
+- data/{user-id}/strains.json (your personal strains)
+- data/{user-id}/sessions.json (your smoke sessions)
+- data/global_strains.json (public strain database)
 
-### Health Check
-```
-GET /api/health
-```
+SECURITY:
+---------
+- All sensitive data is encrypted
+- Passwords are hashed using bcrypt
+- Data never leaves your local network
+- You have full control of your data
 
-### Authentication
-```
-POST /api/auth/signup
-POST /api/auth/login
-GET  /api/auth/me
-```
+TROUBLESHOOTING:
+----------------
+1. "Node.js is not installed" error
+   → Install Node.js from https://nodejs.org/
 
-### Strains
-```
-GET    /api/strains
-GET    /api/strains/:id
-POST   /api/strains
-PUT    /api/strains/:id
-DELETE /api/strains/:id
-```
+2. "Cannot find module" errors
+   → Delete the node_modules folder and run start_server.bat again
 
-### Sessions
-```
-GET    /api/sessions
-GET    /api/sessions/:id
-POST   /api/sessions
-PUT    /api/sessions/:id
-DELETE /api/sessions/:id
-```
+3. App cannot connect to server
+   → Make sure both devices are on the same WiFi
+   → Check that the server window is still open and running
+   → Try using the Network URL shown in the server window
 
-## Connecting from Mobile
+4. Port 4000 already in use
+   → Close other programs using port 4000, or
+   → Edit index.js and change PORT value to something else (like 5000)
 
-Find your local IP:
-```bash
-ipconfig
-```
+BACKUP YOUR DATA:
+-----------------
+Your data is in the "data" folder. To backup:
+1. Stop the server
+2. Copy the entire "data" folder to a safe location
+3. To restore, copy the folder back and restart the server
 
-Use `http://YOUR_IP:4000` instead of localhost.
+SUPPORT:
+--------
+For issues or questions, please refer to the main app documentation.
 
-## Building EXE
-
-Double-click `build_windows_exe.bat` or run:
-```bash
-npm run build-exe
-```
-
-## Data Storage
-
-All data is stored in JSON files:
-- `data/users.json`
-- `data/strains.json`
-- `data/sessions.json`
-
-## Troubleshooting
-
-- Ensure Node.js is installed
-- Check firewall settings for network access
-- Verify devices are on same WiFi network
-- Check port 4000 is not in use
-
-## Security Notes
-
-This is a LOCAL development server. Do not expose to internet without additional security.
+================================================================================
