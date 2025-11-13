@@ -18,8 +18,7 @@ import { useApp } from "@/contexts/AppContext";
 export default function SignupScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [handle, setHandle] = useState("");
+  const [username, setUsername] = useState("");
   const { setAuthToken } = useApp();
 
   const signupMutation = trpc.auth.signup.useMutation({
@@ -35,7 +34,7 @@ export default function SignupScreen() {
   });
 
   const handleSignup = () => {
-    if (!email || !password || !displayName || !handle) {
+    if (!email || !password || !username) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
@@ -43,7 +42,7 @@ export default function SignupScreen() {
       Alert.alert("Error", "Password must be at least 6 characters");
       return;
     }
-    signupMutation.mutate({ email, password, displayName, handle });
+    signupMutation.mutate({ username, email, password });
   };
 
   return (
@@ -63,28 +62,15 @@ export default function SignupScreen() {
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Display Name</Text>
-              <TextInput
-                style={styles.input}
-                value={displayName}
-                onChangeText={setDisplayName}
-                placeholder="Your Name"
-                placeholderTextColor="#666"
-                autoComplete="name"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
               <Text style={styles.label}>Username</Text>
               <TextInput
                 style={styles.input}
-                value={handle}
-                onChangeText={(text) => setHandle(text.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-                placeholder="username"
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Your username"
                 placeholderTextColor="#666"
                 autoCapitalize="none"
               />
-              <Text style={styles.hint}>Lowercase letters, numbers, and underscores only</Text>
             </View>
 
             <View style={styles.inputGroup}>
