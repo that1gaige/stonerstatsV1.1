@@ -14,8 +14,10 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Modal,
+  Pressable,
 } from "react-native";
-import { Search, Plus, Check, Camera } from "lucide-react-native";
+import { Search, Plus, Check, Camera, Upload, X } from "lucide-react-native";
 import { router } from "expo-router";
 
 const STRAIN_TYPES: StrainType[] = ["indica", "sativa", "hybrid"];
@@ -47,6 +49,7 @@ export default function LibraryScreen() {
   const [bannerText, setBannerText] = useState<string | null>(null);
 
   const [showAdd, setShowAdd] = useState<boolean>(false);
+  const [showScanModal, setShowScanModal] = useState<boolean>(false);
   const [newName, setNewName] = useState<string>("");
   const [newType, setNewType] = useState<StrainType>("hybrid");
 
@@ -330,13 +333,13 @@ export default function LibraryScreen() {
         </View>
       )}
 
-      {activeTab === "my-strains" && (
+      {activeTab === "my-strains" && userStrains.length === 0 && (
         <>
           <TouchableOpacity
             accessibilityRole="button"
             testID="scan-button"
             style={styles.scanFab}
-            onPress={() => router.push("/scan")}
+            onPress={() => setShowScanModal(true)}
           >
             <Camera color="#0a0a0a" size={20} />
             <Text style={styles.fabText}>Scan</Text>
@@ -353,6 +356,57 @@ export default function LibraryScreen() {
           </TouchableOpacity>
         </>
       )}
+
+      <Modal
+        visible={showScanModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowScanModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowScanModal(false)}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Scan Strain</Text>
+              <TouchableOpacity onPress={() => setShowScanModal(false)}>
+                <X size={24} color="#999" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>Choose an option</Text>
+            
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={() => {
+                setShowScanModal(false);
+                router.push("/scan");
+              }}
+            >
+              <View style={styles.modalOptionIcon}>
+                <Camera size={28} color="#4ade80" />
+              </View>
+              <View style={styles.modalOptionText}>
+                <Text style={styles.modalOptionTitle}>Take Photo</Text>
+                <Text style={styles.modalOptionDesc}>Open camera to scan container</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={() => {
+                setShowScanModal(false);
+                Alert.alert("Coming Soon", "Photo upload feature will be available soon!");
+              }}
+            >
+              <View style={styles.modalOptionIcon}>
+                <Upload size={28} color="#4ade80" />
+              </View>
+              <View style={styles.modalOptionText}>
+                <Text style={styles.modalOptionTitle}>Upload Photo</Text>
+                <Text style={styles.modalOptionDesc}>Choose from your gallery</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -682,5 +736,69 @@ const styles = StyleSheet.create({
   bannerText: {
     color: "#8ef0b1",
     fontWeight: "700" as const,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#1a1a1a",
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "800" as const,
+    color: "#fff",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#888",
+    marginBottom: 20,
+  },
+  modalOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0a0a0a",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: "#2a2a2a",
+  },
+  modalOptionIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(74, 222, 128, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  modalOptionText: {
+    flex: 1,
+  },
+  modalOptionTitle: {
+    fontSize: 18,
+    fontWeight: "700" as const,
+    color: "#fff",
+    marginBottom: 4,
+  },
+  modalOptionDesc: {
+    fontSize: 14,
+    color: "#888",
   },
 });
