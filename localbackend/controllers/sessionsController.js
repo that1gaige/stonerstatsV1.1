@@ -136,10 +136,108 @@ function deleteSession(req, res) {
   }
 }
 
+function getAllSessionsHelper(userId) {
+  let sessions = getSessions();
+  sessions = sessions.filter(s => s.userId === userId);
+  sessions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return sessions;
+}
+
+function getSessionByIdHelper(id, userId) {
+  const sessions = getSessions();
+  const session = sessions.find(s => s.id === id);
+
+  if (!session) {
+    throw new Error('Session not found');
+  }
+
+  if (session.userId !== userId) {
+    throw new Error('Not authorized');
+  }
+
+  return session;
+}
+
+function createSessionHelper(sessionData) {
+  if (!sessionData.userId) {
+    throw new Error('User ID is required');
+  }
+
+  if (!sessionData.strainId && !sessionData.strainName) {
+    throw new Error('Strain information is required');
+  }
+
+  const sessions = getSessions();
+
+  const newSession = {
+    id: uuidv4(),
+    ...sessionData,
+    createdAt: new Date().toISOString()
+  };
+
+  sessions.push(newSession);
+  saveSessions(sessions);
+
+  console.log(`New session created by user: ${newSession.userId}`);
+
+  return newSession;
+}
+
+function updateSessionHelper(id, updateData, userId) {
+  const sessions = getSessions();
+  const index = sessions.findIndex(s => s.id === id);
+
+  if (index === -1) {
+    throw new Error('Session not found');
+  }
+
+  if (sessions[index].userId !== userId) {
+    throw new Error('Not authorized');
+  }
+
+  sessions[index] = {
+    ...sessions[index],
+    ...updateData,
+    id,
+    updatedAt: new Date().toISOString()
+  };
+
+  saveSessions(sessions);
+
+  console.log(`Session updated: ${id}`);
+
+  return sessions[index];
+}
+
+function deleteSessionHelper(id, userId) {
+  const sessions = getSessions();
+  const index = sessions.findIndex(s => s.id === id);
+
+  if (index === -1) {
+    throw new Error('Session not found');
+  }
+
+  if (sessions[index].userId !== userId) {
+    throw new Error('Not authorized');
+  }
+
+  const deletedSession = sessions.splice(index, 1)[0];
+  saveSessions(sessions);
+
+  console.log(`Session deleted: ${id}`);
+
+  return { message: 'Session deleted successfully', session: deletedSession };
+}
+
 module.exports = {
   getAllSessions,
   getSessionById,
   createSession,
   updateSession,
-  deleteSession
+  deleteSession,
+  getAllSessionsHelper,
+  getSessionByIdHelper,
+  createSessionHelper,
+  updateSessionHelper,
+  deleteSessionHelper
 };

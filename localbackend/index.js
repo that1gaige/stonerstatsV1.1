@@ -7,6 +7,7 @@ const os = require('os');
 const authRoutes = require('./routes/auth');
 const strainsRoutes = require('./routes/strains');
 const sessionsRoutes = require('./routes/sessions');
+const { createTRPCMiddleware } = require('./trpcAdapter');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -28,6 +29,8 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+app.use('/api/trpc', createTRPCMiddleware());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/strains', strainsRoutes);

@@ -119,10 +119,102 @@ function deleteStrain(req, res) {
   }
 }
 
+function getAllStrainsHelper(userId) {
+  const strains = getStrains();
+  return strains.filter(s => !s.userId || s.userId === userId);
+}
+
+function getStrainByIdHelper(id, userId) {
+  const strains = getStrains();
+  const strain = strains.find(s => s.id === id);
+
+  if (!strain) {
+    throw new Error('Strain not found');
+  }
+
+  if (strain.userId && strain.userId !== userId) {
+    throw new Error('Not authorized');
+  }
+
+  return strain;
+}
+
+function createStrainHelper(strainData) {
+  if (!strainData.name) {
+    throw new Error('Strain name is required');
+  }
+
+  const strains = getStrains();
+
+  const newStrain = {
+    id: uuidv4(),
+    ...strainData,
+    createdAt: new Date().toISOString()
+  };
+
+  strains.push(newStrain);
+  saveStrains(strains);
+
+  console.log(`New strain created: ${newStrain.name}`);
+
+  return newStrain;
+}
+
+function updateStrainHelper(id, updateData, userId) {
+  const strains = getStrains();
+  const index = strains.findIndex(s => s.id === id);
+
+  if (index === -1) {
+    throw new Error('Strain not found');
+  }
+
+  if (strains[index].userId && strains[index].userId !== userId) {
+    throw new Error('Not authorized');
+  }
+
+  strains[index] = {
+    ...strains[index],
+    ...updateData,
+    id,
+    updatedAt: new Date().toISOString()
+  };
+
+  saveStrains(strains);
+
+  console.log(`Strain updated: ${strains[index].name}`);
+
+  return strains[index];
+}
+
+function deleteStrainHelper(id, userId) {
+  const strains = getStrains();
+  const index = strains.findIndex(s => s.id === id);
+
+  if (index === -1) {
+    throw new Error('Strain not found');
+  }
+
+  if (strains[index].userId && strains[index].userId !== userId) {
+    throw new Error('Not authorized');
+  }
+
+  const deletedStrain = strains.splice(index, 1)[0];
+  saveStrains(strains);
+
+  console.log(`Strain deleted: ${deletedStrain.name}`);
+
+  return { message: 'Strain deleted successfully', strain: deletedStrain };
+}
+
 module.exports = {
   getAllStrains,
   getStrainById,
   createStrain,
   updateStrain,
-  deleteStrain
+  deleteStrain,
+  getAllStrainsHelper,
+  getStrainByIdHelper,
+  createStrainHelper,
+  updateStrainHelper,
+  deleteStrainHelper
 };

@@ -154,8 +154,120 @@ function me(req, res) {
   }
 }
 
+function signupHelper(username, email, password) {
+  if (!email || !username || !password) {
+    throw new Error('All fields are required: email, username, password');
+  }
+
+  if (!email.includes('@')) {
+    throw new Error('Invalid email format');
+  }
+
+  if (password.length < 6) {
+    throw new Error('Password must be at least 6 characters long');
+  }
+
+  const users = getUsers();
+
+  const existingUser = users.find(
+    u => u.email.toLowerCase() === email.toLowerCase()
+  );
+
+  if (existingUser) {
+    throw new Error('Email already exists');
+  }
+
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
+  const newUser = {
+    id: uuidv4(),
+    email: email.toLowerCase(),
+    username,
+    password: hashedPassword,
+    createdAt: new Date().toISOString()
+  };
+
+  users.push(newUser);
+  saveUsers(users);
+
+  const token = Buffer.from(`${newUser.id}:${Date.now()}`).toString('base64');
+
+  console.log(`New user signed up: ${email}`);
+
+  return {
+    user: sanitizeUser(newUser),
+    token
+  };
+}
+
+function loginHelper(email, password) {
+  if (!email || !password) {
+    throw new Error('Email and password are required');
+  }
+
+  const users = getUsers();
+
+  const user = users.find(
+    u => u.email.toLowerCase() === email.toLowerCase()
+  );
+
+  if (!user) {
+    throw new Error('Invalid email or password');
+  }
+
+  const isValidPassword = bcrypt.compareSync(password, user.password);
+
+  if (!isValidPassword) {
+    throw new Error('Invalid email or password');
+  }
+
+  const token = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
+
+  console.log(`User logged in: ${email}`);
+
+  return {
+    user: sanitizeUser(user),
+    token
+  };
+}
+
+function verifyToken(token) {
+  try {
+    const decoded = Buffer.from(token, 'base64').toString();
+    const [userId] = decoded.split(':');
+
+    const users = getUsers();
+    const user = users.find(u => u.id === userId);
+
+    if (!user) {
+      return null;
+    }
+
+    return sanitizeUser(user);
+  } catch (error) {
+    return null;
+  }
+}
+
+function getMe(userId) {
+  const users = getUsers();
+  const user = users.find(u => u.id === userId);
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  return {
+    user: sanitizeUser(user)
+  };
+}
+
 module.exports = {
   signup,
   login,
-  me
+  me,
+  signupHelper,
+  loginHelper,
+  verifyToken,
+  getMe
 };
