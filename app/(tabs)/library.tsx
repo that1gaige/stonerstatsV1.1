@@ -17,6 +17,10 @@ import {
   Modal,
   Pressable,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Search, Plus, Check, Camera, Upload, X } from "lucide-react-native";
 import { router } from "expo-router";
@@ -458,89 +462,100 @@ IMPORTANT:
       />
 
       {showAdd && (
-        <View style={styles.addSheet}>
-          <View style={styles.addHeader}>
-            <Text style={styles.addTitle}>Add Strain</Text>
-            <TouchableOpacity onPress={() => setShowAdd(false)} style={styles.closePill}>
-              <Text style={styles.closePillText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.formRow}>
-            <Text style={styles.label}>Name</Text>
-            <TextInput
-              testID="add-name"
-              style={styles.input}
-              placeholder="e.g. Purple Nebula"
-              placeholderTextColor="#666"
-              value={newName}
-              onChangeText={setNewName}
-            />
-          </View>
-
-          <View style={styles.formRow}>
-            <Text style={styles.label}>Type</Text>
-            <View style={styles.rowChips}>
-              {STRAIN_TYPES.map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  style={[styles.methodChip, newType === t && styles.methodChipActive]}
-                  onPress={() => setNewType(t)}
-                >
-                  <Text
-                    style={[styles.methodChipText, newType === t && styles.methodChipTextActive]}
-                  >
-                    {t}
-                  </Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.addSheetContainer}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <ScrollView
+              style={styles.addSheet}
+              contentContainerStyle={styles.addSheetContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.addHeader}>
+                <Text style={styles.addTitle}>Add Strain</Text>
+                <TouchableOpacity onPress={() => setShowAdd(false)} style={styles.closePill}>
+                  <Text style={styles.closePillText}>Close</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+              </View>
 
-          <View style={styles.formRow}>
-            <Text style={styles.label}>Terpenes</Text>
-            <View style={styles.rowWrap}>
-              {TERPS.map((tp) => (
-                <TouchableOpacity
-                  key={tp}
-                  style={[styles.effectChip, newTerps.has(tp) && styles.effectChipActive]}
-                  onPress={() => toggleTerp(tp)}
-                >
-                  {newTerps.has(tp) && <Check size={14} color="#fff" />}
-                  <Text
-                    style={[styles.effectChipText, newTerps.has(tp) && styles.effectChipTextActive]}
-                  >
-                    {tp}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+              <View style={styles.formRow}>
+                <Text style={styles.label}>Name</Text>
+                <TextInput
+                  testID="add-name"
+                  style={styles.input}
+                  placeholder="e.g. Purple Nebula"
+                  placeholderTextColor="#666"
+                  value={newName}
+                  onChangeText={setNewName}
+                />
+              </View>
 
-          <View style={styles.formRow}>
-            <Text style={styles.label}>Description (optional)</Text>
-            <TextInput
-              testID="add-description"
-              style={[styles.input, styles.notesInput]}
-              placeholder="Aroma, lineage, effects..."
-              placeholderTextColor="#666"
-              value={newDesc}
-              onChangeText={setNewDesc}
-              multiline
-            />
-          </View>
+              <View style={styles.formRow}>
+                <Text style={styles.label}>Type</Text>
+                <View style={styles.rowChips}>
+                  {STRAIN_TYPES.map((t) => (
+                    <TouchableOpacity
+                      key={t}
+                      style={[styles.methodChip, newType === t && styles.methodChipActive]}
+                      onPress={() => setNewType(t)}
+                    >
+                      <Text
+                        style={[styles.methodChipText, newType === t && styles.methodChipTextActive]}
+                      >
+                        {t}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
 
-          <TouchableOpacity
-            testID="add-submit"
-            style={styles.submitButton}
-            onPress={handleAdd}
-          >
-            <Text style={styles.submitButtonText}>Add Strain</Text>
-          </TouchableOpacity>
-        </View>
+              <View style={styles.formRow}>
+                <Text style={styles.label}>Terpenes</Text>
+                <View style={styles.rowWrap}>
+                  {TERPS.map((tp) => (
+                    <TouchableOpacity
+                      key={tp}
+                      style={[styles.effectChip, newTerps.has(tp) && styles.effectChipActive]}
+                      onPress={() => toggleTerp(tp)}
+                    >
+                      {newTerps.has(tp) && <Check size={14} color="#fff" />}
+                      <Text
+                        style={[styles.effectChipText, newTerps.has(tp) && styles.effectChipTextActive]}
+                      >
+                        {tp}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.formRow}>
+                <Text style={styles.label}>Description (optional)</Text>
+                <TextInput
+                  testID="add-description"
+                  style={[styles.input, styles.notesInput]}
+                  placeholder="Aroma, lineage, effects..."
+                  placeholderTextColor="#666"
+                  value={newDesc}
+                  onChangeText={setNewDesc}
+                  multiline
+                />
+              </View>
+
+              <TouchableOpacity
+                testID="add-submit"
+                style={styles.submitButton}
+                onPress={handleAdd}
+              >
+                <Text style={styles.submitButtonText}>Add Strain</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       )}
 
-      {activeTab === "my-strains" && userStrains.length === 0 && (
+      {activeTab === "my-strains" && userStrains.length === 0 && !showAdd && (
         <>
           <TouchableOpacity
             accessibilityRole="button"
@@ -773,19 +788,25 @@ const styles = StyleSheet.create({
     color: "#444",
     textAlign: "center",
   },
-  addSheet: {
+  addSheetContainer: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
+    maxHeight: "80%",
+  },
+  addSheet: {
     backgroundColor: "#121212",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    padding: 16,
-    gap: 12,
     borderTopWidth: 1,
     borderColor: "#2a2a2a",
-    maxHeight: "80%",
+    flex: 1,
+  },
+  addSheetContent: {
+    padding: 16,
+    gap: 12,
+    paddingBottom: 40,
   },
   addHeader: {
     flexDirection: "row",
