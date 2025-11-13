@@ -68,6 +68,10 @@ class LocalBackendAPI {
 
     try {
       console.log(`[LocalBackend] ${options.method || 'GET'} ${url}`);
+      console.log(`[LocalBackend] Headers:`, JSON.stringify(headers, null, 2));
+      if (options.body) {
+        console.log(`[LocalBackend] Body:`, options.body);
+      }
       
       const response = await fetch(url, {
         ...options,
@@ -75,15 +79,35 @@ class LocalBackendAPI {
         timeout: LOCALBACKEND_CONFIG.TIMEOUT,
       } as any);
 
-      const data = await response.json();
+      console.log(`[LocalBackend] Response status:`, response.status, response.statusText);
+
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        data = await response.json();
+        console.log(`[LocalBackend] Response data:`, JSON.stringify(data, null, 2));
+      } else {
+        const text = await response.text();
+        console.log(`[LocalBackend] Response text:`, text);
+        throw new Error(`Unexpected response type: ${contentType}. Body: ${text}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}`);
+        const errorMsg = data.error || `HTTP ${response.status}: ${response.statusText}`;
+        console.error(`[LocalBackend] Request failed with error:`, errorMsg);
+        throw new Error(errorMsg);
       }
 
       return data;
-    } catch (error) {
-      console.error(`[LocalBackend] Request failed:`, error);
+    } catch (error: any) {
+      console.error(`[LocalBackend] Request exception:`, error);
+      console.error(`[LocalBackend] Error type:`, error.constructor?.name);
+      console.error(`[LocalBackend] Error message:`, error.message);
+      
+      if (error.message?.includes('Network request failed')) {
+        throw new Error('Cannot reach server. Make sure server is running and you are on the same network.');
+      }
+      
       throw error;
     }
   }
@@ -95,6 +119,8 @@ class LocalBackendAPI {
   }
 
   async signup(email: string, username: string, password: string): Promise<AuthResponse> {
+    console.log('[LocalBackend] Signing up:', { email, username });
+    
     const response = await this.request<AuthResponse>(
       LOCALBACKEND_CONFIG.API_ENDPOINTS.AUTH.SIGNUP,
       {
@@ -105,12 +131,16 @@ class LocalBackendAPI {
 
     if (response.token) {
       await AsyncStorage.setItem(TOKEN_KEY, response.token);
+      console.log('[LocalBackend] Token saved to AsyncStorage');
     }
 
+    console.log('[LocalBackend] Signup successful:', response.user.email);
     return response;
   }
 
   async login(email: string, password: string): Promise<AuthResponse> {
+    console.log('[LocalBackend] Logging in:', email);
+    
     const response = await this.request<AuthResponse>(
       LOCALBACKEND_CONFIG.API_ENDPOINTS.AUTH.LOGIN,
       {
@@ -121,8 +151,10 @@ class LocalBackendAPI {
 
     if (response.token) {
       await AsyncStorage.setItem(TOKEN_KEY, response.token);
+      console.log('[LocalBackend] Token saved to AsyncStorage');
     }
 
+    console.log('[LocalBackend] Login successful:', response.user.email);
     return response;
   }
 
