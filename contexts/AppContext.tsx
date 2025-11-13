@@ -3,9 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SmokeSession, Strain, User } from "@/types";
 import { createStrain } from "@/utils/iconGenerator";
-import { writeStrainJSON, ensureStrainsDirectory } from "@/utils/strainJSONWriter";
-import { getStrainLibrarySummary } from "@/utils/listStrainsInFolder";
-import { DEMO_STRAINS_DATA } from "@/utils/seedDemoStrains";
+import { DEMO_STRAINS_DATA } from "@/constants/demoStrains";
 
 
 const STORAGE_KEYS = {
@@ -35,7 +33,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const [isLoading, setIsLoading] = useState(true);
 
   const initializeApp = useCallback(async () => {
-    await ensureStrainsDirectory();
     await loadData();
   }, []);
 
@@ -66,26 +63,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
           created_at: new Date(s.created_at),
         }));
         setStrains(strainsWithDates);
-        try {
-          await ensureStrainsDirectory();
-          for (const strain of strainsWithDates) {
-            await writeStrainJSON(strain);
-          }
-        } catch (error) {
-          console.error('Failed ensuring JSON files for existing strains:', error);
-        }
       } else {
         const demoStrains = createDemoStrains();
         setStrains(demoStrains);
         await AsyncStorage.setItem(STORAGE_KEYS.STRAINS, JSON.stringify(demoStrains));
-        
-        for (const strain of demoStrains) {
-          try {
-            await writeStrainJSON(strain);
-          } catch (error) {
-            console.error(`Failed to write JSON for strain ${strain.strain_id}:`, error);
-          }
-        }
       }
 
 
@@ -102,8 +83,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
         setSessions(demoSessions);
         await AsyncStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(demoSessions));
       }
-      
-      await getStrainLibrarySummary();
     } catch (error) {
       console.error("Failed to load data:", error);
     } finally {
@@ -115,12 +94,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     const updated = [...strains, strain];
     setStrains(updated);
     await AsyncStorage.setItem(STORAGE_KEYS.STRAINS, JSON.stringify(updated));
-    try {
-      await writeStrainJSON(strain);
-      console.log(`Generated JSON file for strain: ${strain.name}`);
-    } catch (error) {
-      console.error(`Failed to generate JSON for strain ${strain.name}:`, error);
-    }
+    console.log(`Added strain: ${strain.name}`);
   }, [strains]);
 
 

@@ -143,23 +143,7 @@ function enhanceColorWithDescriptor(
   return { hue, saturation, lightness };
 }
 
-function hslaToHex(h: number, s: number, l: number, a: number = 1): string {
-  const c = (1 - Math.abs(2 * l / 100 - 1)) * (s / 100);
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = l / 100 - c / 2;
-  let r = 0, g = 0, b = 0;
-  if (h < 60) { r = c; g = x; b = 0; }
-  else if (h < 120) { r = x; g = c; b = 0; }
-  else if (h < 180) { r = 0; g = c; b = x; }
-  else if (h < 240) { r = 0; g = x; b = c; }
-  else if (h < 300) { r = x; g = 0; b = c; }
-  else { r = c; g = 0; b = x; }
-  const R = Math.round((r + m) * 255);
-  const G = Math.round((g + m) * 255);
-  const B = Math.round((b + m) * 255);
-  const toHex = (n: number) => n.toString(16).padStart(2, '0');
-  return `#${toHex(R)}${toHex(G)}${toHex(B)}`;
-}
+
 
 function generateGradient(
   descriptors: string[],
@@ -369,54 +353,7 @@ export function generateIconParams(
   };
 }
 
-function toHex(bytes: number[]): string {
-  return bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
 
-export function generateStrainJSON(strain: Strain): string {
-  const normalized = normalizeStrainName(strain.name);
-  const params = strain.icon_render_params;
-
-  const gradient = params.gradient;
-  const gradientHexColors = gradient.enabled
-    ? gradient.stops.map((s) => hslaToHex(s.hue, s.saturation_pct, s.lightness_pct, s.alpha_pct / 100))
-    : [];
-
-  const json = {
-    schema_version: "1.8.0",
-    strain_id: strain.strain_id,
-    identity: {
-      name: strain.name,
-      normalized_name: normalized,
-      breeder: strain.breeder ?? null,
-      aliases: strain.aliases ?? [],
-    },
-    terp_profile: strain.terp_profile ?? [],
-    lineage: strain.lineage ?? { parents: [], children: [], notes: null },
-    description: strain.description ?? null,
-    icon: {
-      dominant_color_hue: params.palette.base_hue,
-      gradient: {
-        enabled: gradient.enabled,
-        colors: gradientHexColors,
-        angle_deg: gradient.angle_deg,
-      },
-      effects: {
-        leaf_count: 7,
-        outer_glow: params.outer_glow_enabled,
-        stroke: {
-          enabled: true,
-          color: hslaToHex(params.palette.base_hue, params.palette.saturation_pct, Math.max(0, params.palette.lightness_pct - 20)),
-          width_px: Math.max(1, Math.round(params.stroke_px)),
-        },
-      },
-    },
-    created_at: strain.created_at.toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  return JSON.stringify(json, null, 2);
-}
 
 export function createStrain(
   name: string,

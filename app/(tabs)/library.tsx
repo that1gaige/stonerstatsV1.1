@@ -3,7 +3,7 @@ import { Strain, StrainType, TerpProfile } from "@/types";
 import { StrainIcon } from "@/components/StrainIcon";
 import { createStrain } from "@/utils/iconGenerator";
 import { getStrainIcon } from "@/constants/icons";
-import { DEMO_STRAINS_DATA } from "@/utils/seedDemoStrains";
+import { DEMO_STRAINS_DATA } from "@/constants/demoStrains";
 import { useState, useMemo, useEffect } from "react";
 import {
   View,
