@@ -1,7 +1,8 @@
 import { StrainIcon } from "@/components/StrainIcon";
 import { getStrainIcon } from "@/constants/icons";
+import { EXPLORE_STRAINS_DATA } from "@/constants/exploreStrains";
 import { EffectTag, Method, Strain } from "@/types";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -11,11 +12,9 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  Animated,
-  Easing,
   Modal,
 } from "react-native";
-import { Check, Flame, Scan } from "lucide-react-native";
+import { Check, Scan } from "lucide-react-native";
 import { router } from "expo-router";
 import { trpc } from "@/lib/trpc";
 import { useApp } from "@/contexts/AppContext";
@@ -54,15 +53,69 @@ export default function LogScreen() {
   });
 
   const [selectedStrain, setSelectedStrain] = useState<Strain | null>(null);
-  const strains = strainsQuery.data || [];
-  const dedupedStrains = useMemo<Strain[]>(() => {
-    const m = new Map<string, Strain>();
-    for (const s of strains) {
+  
+  const allStrains = useMemo<Strain[]>(() => {
+    const userStrains = strainsQuery.data || [];
+    const exploreStrains: Strain[] = EXPLORE_STRAINS_DATA.map((strain, idx) => ({
+      strain_id: `explore_${strain.name.toLowerCase().replace(/\s+/g, '_')}`,
+      name: strain.name,
+      type: strain.type,
+      terp_profile: [...strain.terp_profile] as any,
+      description: strain.description,
+      icon_seed: `explore_${idx}`,
+      icon_render_params: {
+        leaf_count: 5,
+        leaf_spread_pct: 75,
+        serration_depth_pct: 30,
+        stem_length_pct: 40,
+        rotation_jitter_deg: 15,
+        stroke_px: 2,
+        outer_glow_enabled: true,
+        outer_glow_intensity_pct: 50,
+        texture_noise_seed: idx,
+        background_hue: strain.type === 'indica' ? 270 : strain.type === 'sativa' ? 140 : 30,
+        palette: {
+          base_hue: strain.type === 'indica' ? 270 : strain.type === 'sativa' ? 140 : 30,
+          accent_hue_shift_deg: 20,
+          saturation_pct: 65,
+          lightness_pct: 50,
+          stroke_variant_lightness_delta: -10,
+          glow_variant_lightness_delta: 15,
+        },
+        gradient: {
+          enabled: false,
+          type: 'linear' as const,
+          angle_deg: 45,
+          blend_mode: 'overlay' as const,
+          opacity_pct: 30,
+          stops: [],
+        },
+      },
+      created_at: new Date(),
+      source: 'developer' as const,
+    }));
+
+    const deduped = new Map<string, Strain>();
+    for (const s of userStrains) {
       const key = s.strain_id && s.strain_id.length > 0 ? s.strain_id : s.name;
-      if (!m.has(key)) m.set(key, s);
+      if (!deduped.has(key)) deduped.set(key, s);
     }
-    return Array.from(m.values());
-  }, [strains]);
+    for (const s of exploreStrains) {
+      const key = s.strain_id && s.strain_id.length > 0 ? s.strain_id : s.name;
+      if (!deduped.has(key)) deduped.set(key, s);
+    }
+
+    const result = Array.from(deduped.values());
+    result.sort((a, b) => {
+      const aIsUser = a.source === 'user';
+      const bIsUser = b.source === 'user';
+      if (aIsUser && !bIsUser) return -1;
+      if (!aIsUser && bIsUser) return 1;
+      return a.name.localeCompare(b.name);
+    });
+    return result;
+  }, [strainsQuery.data]);
+
   const [method, setMethod] = useState<Method>("joint");
   const [amount, setAmount] = useState("0.5");
   const [moodBefore, setMoodBefore] = useState<number | null>(null);
@@ -70,100 +123,6 @@ export default function LogScreen() {
   const [selectedEffects, setSelectedEffects] = useState<Set<EffectTag>>(new Set());
   const [notes, setNotes] = useState("");
   const [showStrainPicker, setShowStrainPicker] = useState(false);
-  const [showAnimation, setShowAnimation] = useState(true);
-
-  const flameScale = useRef(new Animated.Value(0)).current;
-  const flameOpacity = useRef(new Animated.Value(1)).current;
-  const smokeOpacity1 = useRef(new Animated.Value(0)).current;
-  const smokeOpacity2 = useRef(new Animated.Value(0)).current;
-  const smokeOpacity3 = useRef(new Animated.Value(0)).current;
-  const smokeY1 = useRef(new Animated.Value(0)).current;
-  const smokeY2 = useRef(new Animated.Value(0)).current;
-  const smokeY3 = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.sequence([
-      Animated.parallel([
-        Animated.spring(flameScale, {
-          toValue: 1,
-          friction: 3,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-        Animated.timing(flameOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.delay(400),
-      Animated.parallel([
-        Animated.timing(flameOpacity, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(smokeOpacity1, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(smokeY1, {
-          toValue: -100,
-          duration: 1200,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.delay(200),
-      Animated.parallel([
-        Animated.timing(smokeOpacity2, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(smokeY2, {
-          toValue: -120,
-          duration: 1400,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(smokeOpacity1, {
-          toValue: 0,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.delay(200),
-      Animated.parallel([
-        Animated.timing(smokeOpacity3, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(smokeY3, {
-          toValue: -140,
-          duration: 1600,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(smokeOpacity2, {
-          toValue: 0,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.timing(smokeOpacity3, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setShowAnimation(false);
-    });
-  }, []);
-
-
 
   const toggleEffect = (effect: EffectTag) => {
     const newSet = new Set(selectedEffects);
@@ -204,60 +163,7 @@ export default function LogScreen() {
   };
 
   return (
-    <>
-      {showAnimation && (
-        <Modal transparent visible={showAnimation} animationType="fade">
-          <View style={styles.animationOverlay}>
-            <View style={styles.animationContainer}>
-              <Animated.View
-                style={[
-                  styles.flameContainer,
-                  {
-                    opacity: flameOpacity,
-                    transform: [{ scale: flameScale }],
-                  },
-                ]}
-              >
-                <Flame size={120} color="#4ade80" fill="#4ade80" />
-              </Animated.View>
-
-              <Animated.View
-                style={[
-                  styles.smokeCircle,
-                  {
-                    opacity: smokeOpacity1,
-                    transform: [{ translateY: smokeY1 }],
-                  },
-                ]}
-              />
-              <Animated.View
-                style={[
-                  styles.smokeCircle,
-                  styles.smokeCircle2,
-                  {
-                    opacity: smokeOpacity2,
-                    transform: [{ translateY: smokeY2 }],
-                  },
-                ]}
-              />
-              <Animated.View
-                style={[
-                  styles.smokeCircle,
-                  styles.smokeCircle3,
-                  {
-                    opacity: smokeOpacity3,
-                    transform: [{ translateY: smokeY3 }],
-                  },
-                ]}
-              />
-
-              <Text style={styles.animationText}>Let's burn 🔥</Text>
-            </View>
-          </View>
-        </Modal>
-      )}
-
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Strain</Text>
@@ -312,7 +218,7 @@ export default function LogScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalScroll}>
-              {dedupedStrains.map((strain, index) => (
+              {allStrains.map((strain, index) => (
                 <TouchableOpacity
                   key={strain.strain_id && strain.strain_id.length > 0 ? strain.strain_id : `${strain.name}-${index}`}
                   style={styles.pickerItem}
@@ -322,7 +228,12 @@ export default function LogScreen() {
                   }}
                 >
                   <StrainIcon params={strain.icon_render_params} size={40} baseLeafSource={getStrainIcon(strain)} fillSeedUUID={strain.strain_id} />
-                  <Text style={styles.pickerItemText}>{strain.name}</Text>
+                  <View style={styles.pickerItemInfo}>
+                    <Text style={styles.pickerItemText}>{strain.name}</Text>
+                    {strain.source === 'user' && (
+                      <Text style={styles.pickerItemBadge}>My Strain</Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -466,9 +377,8 @@ export default function LogScreen() {
         )}
       </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </>
+      <View style={{ height: 40 }} />
+    </ScrollView>
   );
 }
 
@@ -601,10 +511,25 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.03)",
     marginBottom: 4,
   },
+  pickerItemInfo: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   pickerItemText: {
     fontSize: 16,
     color: "#fff",
     fontWeight: "600" as const,
+  },
+  pickerItemBadge: {
+    fontSize: 12,
+    color: "#4ade80",
+    fontWeight: "700" as const,
+    backgroundColor: "rgba(74, 222, 128, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   methodGrid: {
     gap: 8,
@@ -714,45 +639,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700" as const,
     color: "#0a0a0a",
-  },
-  animationOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.95)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  animationContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  flameContainer: {
-    marginBottom: 20,
-  },
-  smokeCircle: {
-    position: "absolute",
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(74, 222, 128, 0.3)",
-    top: 80,
-  },
-  smokeCircle2: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    left: -15,
-  },
-  smokeCircle3: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    left: 10,
-  },
-  animationText: {
-    fontSize: 24,
-    fontWeight: "700" as const,
-    color: "#4ade80",
-    marginTop: 180,
-    letterSpacing: 1,
   },
 });
