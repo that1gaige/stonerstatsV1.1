@@ -1,7 +1,7 @@
 import { StrainIcon } from "@/components/StrainIcon";
 import { getStrainIcon } from "@/constants/icons";
 import { EffectTag, Method, Strain } from "@/types";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -11,8 +11,11 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Animated,
+  Easing,
+  Modal,
 } from "react-native";
-import { Check, Scan } from "lucide-react-native";
+import { Check, Flame, Scan } from "lucide-react-native";
 import { router } from "expo-router";
 import { trpc } from "@/lib/trpc";
 import { useApp } from "@/contexts/AppContext";
@@ -67,6 +70,98 @@ export default function LogScreen() {
   const [selectedEffects, setSelectedEffects] = useState<Set<EffectTag>>(new Set());
   const [notes, setNotes] = useState("");
   const [showStrainPicker, setShowStrainPicker] = useState(false);
+  const [showAnimation, setShowAnimation] = useState(true);
+
+  const flameScale = useRef(new Animated.Value(0)).current;
+  const flameOpacity = useRef(new Animated.Value(1)).current;
+  const smokeOpacity1 = useRef(new Animated.Value(0)).current;
+  const smokeOpacity2 = useRef(new Animated.Value(0)).current;
+  const smokeOpacity3 = useRef(new Animated.Value(0)).current;
+  const smokeY1 = useRef(new Animated.Value(0)).current;
+  const smokeY2 = useRef(new Animated.Value(0)).current;
+  const smokeY3 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.parallel([
+        Animated.spring(flameScale, {
+          toValue: 1,
+          friction: 3,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+        Animated.timing(flameOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.delay(400),
+      Animated.parallel([
+        Animated.timing(flameOpacity, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(smokeOpacity1, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(smokeY1, {
+          toValue: -100,
+          duration: 1200,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.delay(200),
+      Animated.parallel([
+        Animated.timing(smokeOpacity2, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(smokeY2, {
+          toValue: -120,
+          duration: 1400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(smokeOpacity1, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.delay(200),
+      Animated.parallel([
+        Animated.timing(smokeOpacity3, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(smokeY3, {
+          toValue: -140,
+          duration: 1600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(smokeOpacity2, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(smokeOpacity3, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowAnimation(false);
+    });
+  }, []);
 
 
 
@@ -109,7 +204,60 @@ export default function LogScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <>
+      {showAnimation && (
+        <Modal transparent visible={showAnimation} animationType="fade">
+          <View style={styles.animationOverlay}>
+            <View style={styles.animationContainer}>
+              <Animated.View
+                style={[
+                  styles.flameContainer,
+                  {
+                    opacity: flameOpacity,
+                    transform: [{ scale: flameScale }],
+                  },
+                ]}
+              >
+                <Flame size={120} color="#4ade80" fill="#4ade80" />
+              </Animated.View>
+
+              <Animated.View
+                style={[
+                  styles.smokeCircle,
+                  {
+                    opacity: smokeOpacity1,
+                    transform: [{ translateY: smokeY1 }],
+                  },
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.smokeCircle,
+                  styles.smokeCircle2,
+                  {
+                    opacity: smokeOpacity2,
+                    transform: [{ translateY: smokeY2 }],
+                  },
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.smokeCircle,
+                  styles.smokeCircle3,
+                  {
+                    opacity: smokeOpacity3,
+                    transform: [{ translateY: smokeY3 }],
+                  },
+                ]}
+              />
+
+              <Text style={styles.animationText}>Let's burn 🔥</Text>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Strain</Text>
@@ -142,25 +290,45 @@ export default function LogScreen() {
         )}
       </View>
 
-      {showStrainPicker && (
-        <View style={styles.picker}>
-          <ScrollView style={styles.pickerScroll}>
-            {dedupedStrains.map((strain, index) => (
+      <Modal
+        visible={showStrainPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStrainPicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowStrainPicker(false)}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Strain</Text>
               <TouchableOpacity
-                key={strain.strain_id && strain.strain_id.length > 0 ? strain.strain_id : `${strain.name}-${index}`}
-                style={styles.pickerItem}
-                onPress={() => {
-                  setSelectedStrain(strain);
-                  setShowStrainPicker(false);
-                }}
+                onPress={() => setShowStrainPicker(false)}
+                style={styles.modalCloseButton}
               >
-                <StrainIcon params={strain.icon_render_params} size={40} baseLeafSource={getStrainIcon(strain)} fillSeedUUID={strain.strain_id} />
-                <Text style={styles.pickerItemText}>{strain.name}</Text>
+                <Text style={styles.modalCloseText}>✕</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {dedupedStrains.map((strain, index) => (
+                <TouchableOpacity
+                  key={strain.strain_id && strain.strain_id.length > 0 ? strain.strain_id : `${strain.name}-${index}`}
+                  style={styles.pickerItem}
+                  onPress={() => {
+                    setSelectedStrain(strain);
+                    setShowStrainPicker(false);
+                  }}
+                >
+                  <StrainIcon params={strain.icon_render_params} size={40} baseLeafSource={getStrainIcon(strain)} fillSeedUUID={strain.strain_id} />
+                  <Text style={styles.pickerItemText}>{strain.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Method</Text>
@@ -298,8 +466,9 @@ export default function LogScreen() {
         )}
       </TouchableOpacity>
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </>
   );
 }
 
@@ -379,14 +548,48 @@ const styles = StyleSheet.create({
     fontWeight: "600" as const,
     color: "#666",
   },
-  picker: {
-    backgroundColor: "#1a1a1a",
-    borderRadius: 12,
-    marginBottom: 24,
-    maxHeight: 300,
-    overflow: "hidden",
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
-  pickerScroll: {
+  modalContent: {
+    backgroundColor: "#1a1a1a",
+    borderRadius: 16,
+    width: "100%",
+    maxHeight: 500,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700" as const,
+    color: "#fff",
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#333",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalCloseText: {
+    fontSize: 18,
+    color: "#999",
+    fontWeight: "700" as const,
+  },
+  modalScroll: {
     padding: 8,
   },
   pickerItem: {
@@ -395,6 +598,8 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 12,
     borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    marginBottom: 4,
   },
   pickerItemText: {
     fontSize: 16,
@@ -509,5 +714,45 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700" as const,
     color: "#0a0a0a",
+  },
+  animationOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  animationContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  flameContainer: {
+    marginBottom: 20,
+  },
+  smokeCircle: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(74, 222, 128, 0.3)",
+    top: 80,
+  },
+  smokeCircle2: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    left: -15,
+  },
+  smokeCircle3: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    left: 10,
+  },
+  animationText: {
+    fontSize: 24,
+    fontWeight: "700" as const,
+    color: "#4ade80",
+    marginTop: 180,
+    letterSpacing: 1,
   },
 });
