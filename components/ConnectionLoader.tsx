@@ -60,51 +60,65 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
     console.log('[ConnectionLoader] Full health check URL:', `${LOCALBACKEND_CONFIG.BASE_URL}/api/health`);
     
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      console.log('[ConnectionLoader] Using XMLHttpRequest to bypass extension interference...');
       
-      console.log('[ConnectionLoader] Starting fetch...');
-      const response = await fetch(`${LOCALBACKEND_CONFIG.BASE_URL}/api/health`, {
-        method: 'GET',
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        mode: 'cors',
+      const result = await new Promise<{ success: boolean; data?: any; error?: string; status?: number }>((resolve) => {
+        const xhr = new XMLHttpRequest();
+        const timeout = setTimeout(() => {
+          xhr.abort();
+          resolve({ success: false, error: 'Connection timeout - server not responding' });
+        }, 8000);
+
+        xhr.onload = () => {
+          clearTimeout(timeout);
+          console.log('[ConnectionLoader] XHR completed, status:', xhr.status);
+          console.log('[ConnectionLoader] Response:', xhr.responseText);
+          
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              resolve({ success: true, data, status: xhr.status });
+            } catch (e) {
+              resolve({ success: false, error: 'Invalid JSON response', status: xhr.status });
+            }
+          } else {
+            resolve({ success: false, error: `Server returned status: ${xhr.status}`, status: xhr.status });
+          }
+        };
+
+        xhr.onerror = () => {
+          clearTimeout(timeout);
+          console.error('[ConnectionLoader] XHR error event');
+          resolve({ success: false, error: 'Network error - cannot reach server' });
+        };
+
+        xhr.onabort = () => {
+          clearTimeout(timeout);
+          console.error('[ConnectionLoader] XHR aborted');
+          resolve({ success: false, error: 'Request aborted' });
+        };
+
+        xhr.open('GET', `${LOCALBACKEND_CONFIG.BASE_URL}/api/health`, true);
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send();
       });
-      
-      clearTimeout(timeoutId);
-      
-      console.log('[ConnectionLoader] Fetch completed, status:', response.status);
-      console.log('[ConnectionLoader] Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[ConnectionLoader] ✅ Connected successfully:', data);
+
+      if (result.success) {
+        console.log('[ConnectionLoader] ✅ Connected successfully:', result.data);
         setLastError(null);
         onConnectionSuccess();
       } else {
-        const errorMsg = `Server returned status: ${response.status}`;
-        console.error('[ConnectionLoader] ❌ Connection failed:', errorMsg);
-        setLastError(errorMsg);
+        console.error('[ConnectionLoader] ❌ Connection failed:', result.error);
+        setLastError(result.error || 'Connection failed');
         scheduleRetry();
       }
     } catch (error: any) {
       console.error('[ConnectionLoader] ❌ Exception caught:', error);
       console.error('[ConnectionLoader] Error type:', error.constructor?.name);
       console.error('[ConnectionLoader] Error message:', error.message);
-      console.error('[ConnectionLoader] Error stack:', error.stack);
       
-      let errorMsg = 'Unknown error';
-      if (error.name === 'AbortError') {
-        errorMsg = 'Connection timeout - server not responding';
-      } else if (error.message) {
-        errorMsg = `${error.name || 'Error'}: ${error.message}`;
-      } else {
-        errorMsg = 'Failed to fetch - network error';
-      }
-      
+      const errorMsg = error.message || 'Unknown error occurred';
       setLastError(errorMsg);
       scheduleRetry();
     }
