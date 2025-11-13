@@ -2,21 +2,11 @@ const { initTRPC } = require('@trpc/server');
 const { createExpressMiddleware } = require('@trpc/server/adapters/express');
 const z = require('zod');
 
-let superjson;
-try {
-  superjson = require('superjson');
-} catch (_e) {
-  console.warn('[tRPC] superjson not available, using default transformer');
-  superjson = undefined;
-}
-
 const authController = require('./controllers/authController');
 const strainsController = require('./controllers/strainsController');
 const sessionsController = require('./controllers/sessionsController');
 
-const t = initTRPC.create({
-  transformer: superjson,
-});
+const t = initTRPC.create();
 
 const router = t.router;
 const publicProcedure = t.procedure;
