@@ -33,11 +33,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const setAuthToken = useCallback(async (token: string | null) => {
+  const setAuthToken = useCallback(async (token: string | null, userData?: User) => {
     setAuthTokenState(token);
     if (token) {
       await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
       setIsAuthenticated(true);
+      if (userData) {
+        setUser(userData);
+        await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+      }
     } else {
       await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       await AsyncStorage.removeItem(STORAGE_KEYS.USER);

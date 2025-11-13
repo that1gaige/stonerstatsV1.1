@@ -25,10 +25,11 @@ export default function SignupScreen() {
   const signupMutation = trpc.auth.signup.useMutation({
     onSuccess: (data) => {
       console.log("Signup successful", data);
-      setAuthToken(data.token);
+      setAuthToken(data.token, data.user);
       router.replace("/(tabs)/feed");
     },
     onError: (error) => {
+      console.error("Signup error:", error);
       Alert.alert("Signup Failed", error.message);
     },
   });

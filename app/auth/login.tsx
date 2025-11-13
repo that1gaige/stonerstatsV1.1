@@ -23,10 +23,11 @@ export default function LoginScreen() {
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       console.log("Login successful", data);
-      setAuthToken(data.token);
+      setAuthToken(data.token, data.user);
       router.replace("/(tabs)/feed");
     },
     onError: (error) => {
+      console.error("Login error:", error);
       Alert.alert("Login Failed", error.message);
     },
   });
