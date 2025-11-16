@@ -12,14 +12,14 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
-import { localBackendAPI } from "@/utils/localBackendAPI";
 import { useApp } from "@/contexts/AppContext";
+import { trpc } from "@/lib/trpc";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const { setAuthToken } = useApp();
+  const loginMutation = trpc.auth.login.useMutation();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -27,24 +27,17 @@ export default function LoginScreen() {
       return;
     }
     
-    setIsLoading(true);
     try {
-      const response = await localBackendAPI.login(email, password);
+      const response = await loginMutation.mutateAsync({ email, password });
       console.log("Login successful", response);
       
       const userData = {
-        user_id: response.user.id,
-        display_name: response.user.username,
-        handle: response.user.username,
-        email: response.user.email,
-        created_at: new Date(response.user.createdAt),
-        following_user_ids: [],
-        preferences: {
-          default_unit: "g" as const,
-          dark_mode: true,
-          notifications_enabled: true,
-          privacy_level: "public" as const,
-        },
+        user_id: response.user.user_id,
+        display_name: response.user.display_name,
+        handle: response.user.handle,
+        created_at: response.user.created_at,
+        following_user_ids: response.user.following_user_ids,
+        preferences: response.user.preferences,
       };
       
       await setAuthToken(response.token, userData);
@@ -52,8 +45,6 @@ export default function LoginScreen() {
     } catch (error: any) {
       console.error("Login error:", error);
       Alert.alert("Login Failed", error.message || "An error occurred");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -101,11 +92,11 @@ export default function LoginScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
+              style={[styles.button, loginMutation.isPending && styles.buttonDisabled]}
               onPress={handleLogin}
-              disabled={isLoading}
+              disabled={loginMutation.isPending}
             >
-              {isLoading ? (
+              {loginMutation.isPending ? (
                 <ActivityIndicator color="#0a0a0a" />
               ) : (
                 <Text style={styles.buttonText}>Log In</Text>

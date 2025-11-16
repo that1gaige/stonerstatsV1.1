@@ -2,6 +2,9 @@ import { Hono } from "hono";
 import { trpcServer } from "@hono/trpc-server";
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
+import { seedDatabase } from "./seed";
+
+seedDatabase().catch(console.error);
 
 const app = new Hono();
 
