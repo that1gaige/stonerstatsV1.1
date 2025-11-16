@@ -13,14 +13,14 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useApp } from "@/contexts/AppContext";
-import { trpc } from "@/lib/trpc";
+import { localBackendAPI } from "@/utils/localBackendAPI";
 
 export default function SignupScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
   const { setAuthToken } = useApp();
-  const signupMutation = trpc.auth.signup.useMutation();
 
   const handleSignup = async () => {
     if (!email || !password || !username) {
@@ -32,22 +32,23 @@ export default function SignupScreen() {
       return;
     }
     
+    setLoading(true);
     try {
-      const response = await signupMutation.mutateAsync({
-        email,
-        password,
-        displayName: username,
-        handle: username.toLowerCase().replace(/\s+/g, ''),
-      });
+      const response = await localBackendAPI.signup(email, username, password);
       console.log("Signup successful", response);
       
       const userData = {
-        user_id: response.user.user_id,
-        display_name: response.user.display_name,
-        handle: response.user.handle,
-        created_at: response.user.created_at,
-        following_user_ids: response.user.following_user_ids,
-        preferences: response.user.preferences,
+        user_id: response.user.id,
+        display_name: response.user.username,
+        handle: response.user.email,
+        created_at: new Date(response.user.createdAt),
+        following_user_ids: [],
+        preferences: {
+          default_unit: "g" as const,
+          dark_mode: true,
+          notifications_enabled: true,
+          privacy_level: "public" as const,
+        },
       };
       
       await setAuthToken(response.token, userData);
@@ -55,6 +56,8 @@ export default function SignupScreen() {
     } catch (error: any) {
       console.error("Signup error:", error);
       Alert.alert("Signup Failed", error.message || "An error occurred");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -114,11 +117,11 @@ export default function SignupScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.button, signupMutation.isPending && styles.buttonDisabled]}
+              style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleSignup}
-              disabled={signupMutation.isPending}
+              disabled={loading}
             >
-              {signupMutation.isPending ? (
+              {loading ? (
                 <ActivityIndicator color="#0a0a0a" />
               ) : (
                 <Text style={styles.buttonText}>Sign Up</Text>

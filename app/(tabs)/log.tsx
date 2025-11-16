@@ -16,7 +16,8 @@ import {
 } from "react-native";
 import { Check, Scan } from "lucide-react-native";
 import { router } from "expo-router";
-import { trpc } from "@/lib/trpc";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { localBackendAPI } from "@/utils/localBackendAPI";
 import { useApp } from "@/contexts/AppContext";
 
 const METHODS: Method[] = ["joint", "bong", "pipe", "vape", "edible", "dab"];
@@ -35,10 +36,40 @@ const EFFECTS: EffectTag[] = [
 
 export default function LogScreen() {
   const { user } = useApp();
-  const strainsQuery = trpc.strains.getAll.useQuery();
-  const createSessionMutation = trpc.sessions.create.useMutation({
+  const queryClient = useQueryClient();
+  
+  const strainsQuery = useQuery({
+    queryKey: ['strains'],
+    queryFn: () => localBackendAPI.getStrains(),
+  });
+  
+  const createSessionMutation = useMutation({
+    mutationFn: async (data: { 
+      strain_id: string; 
+      method: string; 
+      amount: number; 
+      amount_unit: string;
+      mood_before?: number;
+      mood_after?: number;
+      effects_tags: string[];
+      notes?: string;
+    }) => {
+      const selectedStrainData = allStrains.find(s => s.strain_id === data.strain_id);
+      
+      await localBackendAPI.createSession({
+        userId: user.user_id,
+        strainId: data.strain_id,
+        strainName: selectedStrainData?.name || 'Unknown',
+        rating: data.mood_after,
+        notes: data.notes,
+        timestamp: new Date().toISOString(),
+      });
+      
+      return { success: true };
+    },
     onSuccess: () => {
       Alert.alert("Success", "Session logged!");
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
       setSelectedStrain(null);
       setMethod("joint");
       setAmount("0.5");
@@ -47,15 +78,53 @@ export default function LogScreen() {
       setSelectedEffects(new Set());
       setNotes("");
     },
-    onError: (error) => {
-      Alert.alert("Error", error.message);
+    onError: (error: any) => {
+      Alert.alert("Error", error.message || "Failed to log session");
     },
   });
 
   const [selectedStrain, setSelectedStrain] = useState<Strain | null>(null);
   
   const allStrains = useMemo<Strain[]>(() => {
-    const userStrains = strainsQuery.data || [];
+    const backendStrains = strainsQuery.data || [];
+    const userStrains: Strain[] = backendStrains.map((s) => ({
+      strain_id: s.id,
+      name: s.name || 'Unknown',
+      type: (s.type as 'indica' | 'sativa' | 'hybrid') || 'hybrid',
+      terp_profile: [],
+      description: s.description || '',
+      icon_seed: s.id,
+      icon_render_params: {
+        leaf_count: 5,
+        leaf_spread_pct: 75,
+        serration_depth_pct: 30,
+        stem_length_pct: 40,
+        rotation_jitter_deg: 15,
+        stroke_px: 2,
+        outer_glow_enabled: true,
+        outer_glow_intensity_pct: 50,
+        texture_noise_seed: 1,
+        background_hue: s.type === 'indica' ? 270 : s.type === 'sativa' ? 140 : 30,
+        palette: {
+          base_hue: s.type === 'indica' ? 270 : s.type === 'sativa' ? 140 : 30,
+          accent_hue_shift_deg: 20,
+          saturation_pct: 65,
+          lightness_pct: 50,
+          stroke_variant_lightness_delta: -10,
+          glow_variant_lightness_delta: 15,
+        },
+        gradient: {
+          enabled: false,
+          type: 'linear' as const,
+          angle_deg: 45,
+          blend_mode: 'overlay' as const,
+          opacity_pct: 30,
+          stops: [],
+        },
+      },
+      created_at: new Date(s.createdAt || Date.now()),
+      source: 'user' as const,
+    }));
     const exploreStrains: Strain[] = EXPLORE_STRAINS_DATA.map((strain, idx) => ({
       strain_id: `explore_${strain.name.toLowerCase().replace(/\s+/g, '_')}`,
       name: strain.name,

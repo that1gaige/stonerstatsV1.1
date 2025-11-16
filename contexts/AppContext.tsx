@@ -5,7 +5,7 @@ import { SmokeSession, Strain, User } from "@/types";
 import { router } from "expo-router";
 
 const STORAGE_KEYS = {
-  AUTH_TOKEN: "stonerstats_auth_token",
+  AUTH_TOKEN: "localbackend_auth_token",
   USER: "stonerstats_user",
   STRAINS: "stonerstats_strains",
   SESSIONS: "stonerstats_sessions",
