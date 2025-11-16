@@ -1,134 +1,19 @@
 import { StrainIcon } from "@/components/StrainIcon";
 import { getStrainIcon } from "@/constants/icons";
 import { View, Text, StyleSheet, FlatList, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { localBackendAPI } from "@/utils/localBackendAPI";
+import { trpc } from "@/lib/trpc";
 import { Heart } from "lucide-react-native";
-import { useApp } from "@/contexts/AppContext";
 
 export default function FeedScreen() {
-  const { user } = useApp();
-  const queryClient = useQueryClient();
-  
-  const feedQuery = useQuery({
-    queryKey: ['sessions', 'feed'],
-    queryFn: async () => {
-      const sessions = await localBackendAPI.getSessions();
-      const strains = await localBackendAPI.getStrains();
-      
-      return sessions.map((session) => {
-        const strain = strains.find(s => s.id === session.strainId);
-        
-        return {
-          session: {
-            session_id: session.id,
-            user_id: session.userId,
-            strain_id: session.strainId || '',
-            method: session.method || 'joint',
-            amount: 0.5,
-            amount_unit: 'g',
-            mood_before: session.rating,
-            mood_after: session.rating,
-            effects_tags: [],
-            notes: session.notes,
-            photo_urls: [],
-            created_at: new Date(session.timestamp || session.createdAt || Date.now()),
-            likes_count: 0,
-            has_liked: false,
-          },
-          user: {
-            user_id: user.user_id,
-            display_name: user.display_name,
-            handle: user.handle,
-            avatar_url: undefined,
-          },
-          strain: strain ? {
-            strain_id: strain.id,
-            name: strain.name || session.strainName,
-            type: strain.type || 'hybrid',
-            icon_render_params: {
-              leaf_count: 5,
-              leaf_spread_pct: 75,
-              serration_depth_pct: 30,
-              stem_length_pct: 40,
-              rotation_jitter_deg: 15,
-              stroke_px: 2,
-              outer_glow_enabled: true,
-              outer_glow_intensity_pct: 50,
-              texture_noise_seed: 1,
-              background_hue: strain.type === 'indica' ? 270 : strain.type === 'sativa' ? 140 : 30,
-              palette: {
-                base_hue: strain.type === 'indica' ? 270 : strain.type === 'sativa' ? 140 : 30,
-                accent_hue_shift_deg: 20,
-                saturation_pct: 65,
-                lightness_pct: 50,
-                stroke_variant_lightness_delta: -10,
-                glow_variant_lightness_delta: 15,
-              },
-              gradient: {
-                enabled: false,
-                type: 'linear' as const,
-                angle_deg: 45,
-                blend_mode: 'overlay' as const,
-                opacity_pct: 30,
-                stops: [],
-              },
-            },
-          } : {
-            strain_id: session.strainId || '',
-            name: session.strainName,
-            type: 'hybrid',
-            icon_render_params: {
-              leaf_count: 5,
-              leaf_spread_pct: 75,
-              serration_depth_pct: 30,
-              stem_length_pct: 40,
-              rotation_jitter_deg: 15,
-              stroke_px: 2,
-              outer_glow_enabled: true,
-              outer_glow_intensity_pct: 50,
-              texture_noise_seed: 1,
-              background_hue: 30,
-              palette: {
-                base_hue: 30,
-                accent_hue_shift_deg: 20,
-                saturation_pct: 65,
-                lightness_pct: 50,
-                stroke_variant_lightness_delta: -10,
-                glow_variant_lightness_delta: 15,
-              },
-              gradient: {
-                enabled: false,
-                type: 'linear' as const,
-                angle_deg: 45,
-                blend_mode: 'overlay' as const,
-                opacity_pct: 30,
-                stops: [],
-              },
-            },
-          },
-        };
-      });
+  const feedQuery = trpc.sessions.getFeed.useQuery();
+  const likeMutation = trpc.sessions.like.useMutation({
+    onSuccess: () => {
+      feedQuery.refetch();
     },
   });
-  
-  const likeMutation = useMutation({
-    mutationFn: async (sessionId: string) => {
-      console.log('[Feed] Like not implemented in local backend');
-      return { success: true };
-    },
+  const unlikeMutation = trpc.sessions.unlike.useMutation({
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sessions', 'feed'] });
-    },
-  });
-  
-  const unlikeMutation = useMutation({
-    mutationFn: async (sessionId: string) => {
-      console.log('[Feed] Unlike not implemented in local backend');
-      return { success: true };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sessions', 'feed'] });
+      feedQuery.refetch();
     },
   });
 
@@ -169,9 +54,9 @@ export default function FeedScreen() {
 
   const handleLike = (sessionId: string, hasLiked: boolean) => {
     if (hasLiked) {
-      unlikeMutation.mutate(sessionId);
+      unlikeMutation.mutate({ sessionId });
     } else {
-      likeMutation.mutate(sessionId);
+      likeMutation.mutate({ sessionId });
     }
   };
 
