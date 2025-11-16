@@ -41,6 +41,7 @@ export const createSessionProcedure = protectedProcedure
       notes: input.notes,
       photo_urls: input.photo_urls,
       created_at: new Date().toISOString(),
+      likes: [],
     };
 
     db.createSession(session);
@@ -63,8 +64,8 @@ export const createSessionProcedure = protectedProcedure
     };
   });
 
-export const getFeedProcedure = protectedProcedure.query(async () => {
-  const sessions = db.getFeedSessions(50);
+export const getFeedProcedure = protectedProcedure.query(async ({ ctx }) => {
+  const sessions = db.getFeedSessions(ctx.userId, 50);
   
   return sessions.map((session) => {
     const user = db.getUserById(session.user_id);
@@ -84,6 +85,8 @@ export const getFeedProcedure = protectedProcedure.query(async () => {
         notes: session.notes,
         photo_urls: session.photo_urls,
         created_at: new Date(session.created_at),
+        likes_count: session.likes.length,
+        has_liked: session.likes.includes(ctx.userId),
       },
       user: user
         ? {
@@ -124,8 +127,44 @@ export const getUserSessionsProcedure = protectedProcedure.query(async ({ ctx })
   }));
 });
 
+export const likeSessionProcedure = protectedProcedure
+  .input(z.object({ sessionId: z.string() }))
+  .mutation(async ({ input, ctx }) => {
+    const success = db.likeSession(input.sessionId, ctx.userId);
+    
+    if (!success) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Session not found or already liked",
+      });
+    }
+
+    console.log(`User ${ctx.user.display_name} liked session ${input.sessionId}`);
+
+    return { success: true };
+  });
+
+export const unlikeSessionProcedure = protectedProcedure
+  .input(z.object({ sessionId: z.string() }))
+  .mutation(async ({ input, ctx }) => {
+    const success = db.unlikeSession(input.sessionId, ctx.userId);
+    
+    if (!success) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Session not found or not liked",
+      });
+    }
+
+    console.log(`User ${ctx.user.display_name} unliked session ${input.sessionId}`);
+
+    return { success: true };
+  });
+
 export default {
   create: createSessionProcedure,
   getFeed: getFeedProcedure,
   getUserSessions: getUserSessionsProcedure,
+  like: likeSessionProcedure,
+  unlike: unlikeSessionProcedure,
 };

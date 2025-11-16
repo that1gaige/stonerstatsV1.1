@@ -1,10 +1,21 @@
 import { StrainIcon } from "@/components/StrainIcon";
 import { getStrainIcon } from "@/constants/icons";
-import { View, Text, StyleSheet, FlatList, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, FlatList, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
 import { trpc } from "@/lib/trpc";
+import { Heart } from "lucide-react-native";
 
 export default function FeedScreen() {
   const feedQuery = trpc.sessions.getFeed.useQuery();
+  const likeMutation = trpc.sessions.like.useMutation({
+    onSuccess: () => {
+      feedQuery.refetch();
+    },
+  });
+  const unlikeMutation = trpc.sessions.unlike.useMutation({
+    onSuccess: () => {
+      feedQuery.refetch();
+    },
+  });
 
   if (feedQuery.isLoading) {
     return (
@@ -40,6 +51,14 @@ export default function FeedScreen() {
   };
 
 
+
+  const handleLike = (sessionId: string, hasLiked: boolean) => {
+    if (hasLiked) {
+      unlikeMutation.mutate({ sessionId });
+    } else {
+      likeMutation.mutate({ sessionId });
+    }
+  };
 
   const renderSession = ({ item }: { item: typeof feedSessions[0] }) => {
     if (!item.user || !item.strain) return null;
@@ -112,6 +131,25 @@ export default function FeedScreen() {
             {item.session.notes}
           </Text>
         )}
+
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={styles.likeButton}
+            onPress={() => handleLike(item.session.session_id, item.session.has_liked)}
+            disabled={likeMutation.isPending || unlikeMutation.isPending}
+          >
+            <Heart
+              size={24}
+              color={item.session.has_liked ? "#ef4444" : "#666"}
+              fill={item.session.has_liked ? "#ef4444" : "transparent"}
+            />
+            {item.session.likes_count > 0 && (
+              <Text style={[styles.likeCount, item.session.has_liked && styles.likeCountActive]}>
+                {item.session.likes_count}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -268,5 +306,27 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 15,
     color: "#444",
+  },
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#2a2a2a",
+    marginTop: 8,
+  },
+  likeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 8,
+  },
+  likeCount: {
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: "#666",
+  },
+  likeCountActive: {
+    color: "#ef4444",
   },
 });
