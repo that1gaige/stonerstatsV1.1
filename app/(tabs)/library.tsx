@@ -1,9 +1,11 @@
 import { useApp } from "@/contexts/AppContext";
-import { Strain, StrainType, TerpProfile } from "@/types";
+import { Strain, StrainType, TerpProfile, StrainCard as StrainCardType, CardRarity } from "@/types";
 import { StrainIcon } from "@/components/StrainIcon";
+import { StrainCard } from "@/components/StrainCard";
 import { createStrain } from "@/utils/iconGenerator";
 import { getStrainIcon } from "@/constants/icons";
 import { EXPLORE_STRAINS_DATA } from "@/constants/exploreStrains";
+import { generateSetA1Cards } from "@/utils/cardGenerator";
 import { useState, useMemo, useEffect } from "react";
 import {
   View,
@@ -22,7 +24,7 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from "react-native";
-import { Search, Plus, Check, Camera, Upload, X } from "lucide-react-native";
+import { Search, Plus, Check, Camera, Upload, X, Sparkles } from "lucide-react-native";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 
@@ -45,11 +47,11 @@ const ALL_STRAINS = EXPLORE_STRAINS_DATA.map((d) =>
   })
 );
 
-type TabType = "my-strains" | "explore";
+type TabType = "my-strains" | "my-cards" | "explore";
 
 export default function LibraryScreen() {
-  const { strains, addStrain } = useApp();
-  const [activeTab, setActiveTab] = useState<TabType>("my-strains");
+  const { strains, addStrain, cards, addCards } = useApp();
+  const [activeTab, setActiveTab] = useState<TabType>("my-cards");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<Set<StrainType>>(new Set());
   const [bannerText, setBannerText] = useState<string | null>(null);
@@ -62,6 +64,8 @@ export default function LibraryScreen() {
 
   const [newDesc, setNewDesc] = useState<string>("");
   const [newTerps, setNewTerps] = useState<Set<TerpProfile>>(new Set());
+  const [cardSearchQuery, setCardSearchQuery] = useState("");
+  const [selectedRarities, setSelectedRarities] = useState<Set<CardRarity>>(new Set());
 
   useEffect(() => {
     if (bannerText) {
@@ -70,11 +74,23 @@ export default function LibraryScreen() {
     }
   }, [bannerText]);
 
+  useEffect(() => {
+    if (strains.length > 0 && cards.length === 0) {
+      const allStrains = [...strains, ...ALL_STRAINS];
+      const uniqueStrains = Array.from(
+        new Map(allStrains.map(s => [s.strain_id, s])).values()
+      );
+      const generatedCards = generateSetA1Cards(uniqueStrains);
+      addCards(generatedCards);
+      console.log(`Generated ${generatedCards.length} Set A1 cards`);
+    }
+  }, [strains, cards.length, addCards]);
+
   const userStrains = useMemo(() => {
     return strains.filter((s) => s.source === "user" || !s.source);
   }, [strains]);
 
-  const dataSource = activeTab === "my-strains" ? userStrains : ALL_STRAINS;
+  const dataSource = activeTab === "my-strains" ? userStrains : activeTab === "explore" ? ALL_STRAINS : [];
 
   const filteredStrains = useMemo(() => {
     let filtered = dataSource;
@@ -102,6 +118,25 @@ export default function LibraryScreen() {
     return Array.from(dedupedMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [dataSource, searchQuery, selectedTypes]);
 
+  const filteredCards = useMemo(() => {
+    let filtered = cards;
+
+    if (cardSearchQuery.trim()) {
+      const query = cardSearchQuery.toLowerCase();
+      filtered = filtered.filter((c) =>
+        c.card_name.toLowerCase().includes(query) ||
+        c.set_name.toLowerCase().includes(query) ||
+        c.card_number.toLowerCase().includes(query)
+      );
+    }
+
+    if (selectedRarities.size > 0) {
+      filtered = filtered.filter((c) => selectedRarities.has(c.rarity));
+    }
+
+    return filtered.sort((a, b) => a.card_name.localeCompare(b.card_name));
+  }, [cards, cardSearchQuery, selectedRarities]);
+
   const toggleType = (type: StrainType) => {
     const newSet = new Set(selectedTypes);
     if (newSet.has(type)) {
@@ -110,6 +145,16 @@ export default function LibraryScreen() {
       newSet.add(type);
     }
     setSelectedTypes(newSet);
+  };
+
+  const toggleRarity = (rarity: CardRarity) => {
+    const newSet = new Set(selectedRarities);
+    if (newSet.has(rarity)) {
+      newSet.delete(rarity);
+    } else {
+      newSet.add(rarity);
+    }
+    setSelectedRarities(newSet);
   };
 
   const renderStrainItem = ({ item }: { item: Strain }) => (
@@ -376,6 +421,10 @@ IMPORTANT:
     }
   };
 
+  const getStrainForCard = (card: StrainCardType): Strain | undefined => {
+    return [...strains, ...ALL_STRAINS].find(s => s.strain_id === card.strain_id);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.tabBar}>
@@ -388,6 +437,14 @@ IMPORTANT:
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
+          style={[styles.tab, activeTab === "my-cards" && styles.tabActive]}
+          onPress={() => setActiveTab("my-cards")}
+        >
+          <Text style={[styles.tabText, activeTab === "my-cards" && styles.tabTextActive]}>
+            My Cards
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.tab, activeTab === "explore" && styles.tabActive]}
           onPress={() => setActiveTab("explore")}
         >
@@ -397,44 +454,87 @@ IMPORTANT:
         </TouchableOpacity>
       </View>
 
-      <View style={styles.searchContainer}>
-        <Search size={20} color="#666" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search strains..."
-          placeholderTextColor="#666"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
+      {activeTab !== "my-cards" ? (
+        <View style={styles.searchContainer}>
+          <Search size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search strains..."
+            placeholderTextColor="#666"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      ) : (
+        <View style={styles.searchContainer}>
+          <Sparkles size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search cards..."
+            placeholderTextColor="#666"
+            value={cardSearchQuery}
+            onChangeText={setCardSearchQuery}
+          />
+        </View>
+      )}
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}
-        contentContainerStyle={styles.filterContent}
-      >
-        {STRAIN_TYPES.map((type) => (
-          <TouchableOpacity
-            key={type}
-            style={[
-              styles.filterChip,
-              selectedTypes.has(type) && styles.filterChipActive,
-              selectedTypes.has(type) && styles[`type_${type}`],
-            ]}
-            onPress={() => toggleType(type)}
-          >
-            <Text
+      {activeTab !== "my-cards" ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterContainer}
+          contentContainerStyle={styles.filterContent}
+        >
+          {STRAIN_TYPES.map((type) => (
+            <TouchableOpacity
+              key={type}
               style={[
-                styles.filterChipText,
-                selectedTypes.has(type) && styles.filterChipTextActive,
+                styles.filterChip,
+                selectedTypes.has(type) && styles.filterChipActive,
+                selectedTypes.has(type) && styles[`type_${type}`],
               ]}
+              onPress={() => toggleType(type)}
             >
-              {type}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedTypes.has(type) && styles.filterChipTextActive,
+                ]}
+              >
+                {type}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterContainer}
+          contentContainerStyle={styles.filterContent}
+        >
+          {(["common", "uncommon", "rare", "epic", "legendary", "mythic"] as CardRarity[]).map((rarity) => (
+            <TouchableOpacity
+              key={rarity}
+              style={[
+                styles.filterChip,
+                selectedRarities.has(rarity) && styles.filterChipActive,
+                selectedRarities.has(rarity) && styles[`rarity_${rarity}`],
+              ]}
+              onPress={() => toggleRarity(rarity)}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedRarities.has(rarity) && styles.filterChipTextActive,
+                ]}
+              >
+                {rarity}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       {bannerText && (
         <View style={styles.banner}>
@@ -442,24 +542,53 @@ IMPORTANT:
         </View>
       )}
 
-      <FlatList
-        data={filteredStrains}
-        renderItem={renderStrainItem}
-        keyExtractor={(item, index) =>
-          item.strain_id && item.strain_id.length > 0 ? item.strain_id : `${item.name}-${index}`
-        }
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No strains found</Text>
-            <Text style={styles.emptySubtext}>
-              {activeTab === "my-strains"
-                ? "Add your first strain or scan a container"
-                : "Try adjusting your search or filters"}
-            </Text>
+      {activeTab !== "my-cards" ? (
+        <FlatList
+          data={filteredStrains}
+          renderItem={renderStrainItem}
+          keyExtractor={(item, index) =>
+            item.strain_id && item.strain_id.length > 0 ? item.strain_id : `${item.name}-${index}`
+          }
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No strains found</Text>
+              <Text style={styles.emptySubtext}>
+                {activeTab === "my-strains"
+                  ? "Add your first strain or scan a container"
+                  : "Try adjusting your search or filters"}
+              </Text>
+            </View>
+          }
+        />
+      ) : (
+        <>
+          <View style={styles.cardStats}>
+            <Text style={styles.cardStatsText}>You own {filteredCards.length} cards</Text>
+            <Text style={styles.cardStatsSubtext}>Set A1: {cards.length} cards collected</Text>
           </View>
-        }
-      />
+          <FlatList
+            data={filteredCards}
+            renderItem={({ item }) => {
+              const strain = getStrainForCard(item);
+              if (!strain) return null;
+              return <StrainCard card={item} strain={strain} compact />;
+            }}
+            keyExtractor={(item) => item.card_id}
+            contentContainerStyle={styles.listContent}
+            numColumns={1}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Sparkles size={48} color="#333" />
+                <Text style={styles.emptyText}>No cards yet</Text>
+                <Text style={styles.emptySubtext}>
+                  Cards are auto-generated from your strains
+                </Text>
+              </View>
+            }
+          />
+        </>
+      )}
 
       {showAdd && (
         <KeyboardAvoidingView
@@ -727,6 +856,30 @@ const styles = StyleSheet.create({
   type_hybrid: {
     backgroundColor: "#10b981",
     borderColor: "#10b981",
+  },
+  rarity_common: {
+    backgroundColor: "#9ca3af",
+    borderColor: "#9ca3af",
+  },
+  rarity_uncommon: {
+    backgroundColor: "#4ade80",
+    borderColor: "#4ade80",
+  },
+  rarity_rare: {
+    backgroundColor: "#a855f7",
+    borderColor: "#a855f7",
+  },
+  rarity_epic: {
+    backgroundColor: "#3b82f6",
+    borderColor: "#3b82f6",
+  },
+  rarity_legendary: {
+    backgroundColor: "#fbbf24",
+    borderColor: "#fbbf24",
+  },
+  rarity_mythic: {
+    backgroundColor: "#8b5cf6",
+    borderColor: "#8b5cf6",
   },
   listContent: {
     padding: 16,
@@ -1036,6 +1189,24 @@ const styles = StyleSheet.create({
   },
   modalOptionDesc: {
     fontSize: 14,
+    color: "#888",
+  },
+  cardStats: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#1a1a1a",
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 12,
+    gap: 4,
+  },
+  cardStatsText: {
+    fontSize: 16,
+    fontWeight: "700" as const,
+    color: "#fff",
+  },
+  cardStatsSubtext: {
+    fontSize: 13,
     color: "#888",
   },
 });

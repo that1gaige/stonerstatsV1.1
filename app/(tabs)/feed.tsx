@@ -2,16 +2,16 @@ import { StrainIcon } from "@/components/StrainIcon";
 import { getStrainIcon } from "@/constants/icons";
 import { View, Text, StyleSheet, FlatList, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
 import { trpc } from "@/lib/trpc";
-import { Heart } from "lucide-react-native";
+import { Flame, Sparkle } from "lucide-react-native";
 
 export default function FeedScreen() {
   const feedQuery = trpc.sessions.getFeed.useQuery();
-  const likeMutation = trpc.sessions.like.useMutation({
+  const sparkMutation = trpc.sessions.like.useMutation({
     onSuccess: () => {
       feedQuery.refetch();
     },
   });
-  const unlikeMutation = trpc.sessions.unlike.useMutation({
+  const unsparkMutation = trpc.sessions.unlike.useMutation({
     onSuccess: () => {
       feedQuery.refetch();
     },
@@ -52,13 +52,15 @@ export default function FeedScreen() {
 
 
 
-  const handleLike = (sessionId: string, hasLiked: boolean) => {
-    if (hasLiked) {
-      unlikeMutation.mutate({ sessionId });
+  const handleSpark = (sessionId: string, hasSparked: boolean) => {
+    if (hasSparked) {
+      unsparkMutation.mutate({ sessionId });
     } else {
-      likeMutation.mutate({ sessionId });
+      sparkMutation.mutate({ sessionId });
     }
   };
+
+  const HYPE_THRESHOLD = 10;
 
   const renderSession = ({ item }: { item: typeof feedSessions[0] }) => {
     if (!item.user || !item.strain) return null;
@@ -134,18 +136,32 @@ export default function FeedScreen() {
 
         <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={styles.likeButton}
-            onPress={() => handleLike(item.session.session_id, item.session.has_liked)}
-            disabled={likeMutation.isPending || unlikeMutation.isPending}
+            style={styles.sparkButton}
+            onPress={() => handleSpark(item.session.session_id, item.session.has_liked)}
+            disabled={sparkMutation.isPending || unsparkMutation.isPending}
           >
-            <Heart
-              size={24}
-              color={item.session.has_liked ? "#ef4444" : "#666"}
-              fill={item.session.has_liked ? "#ef4444" : "transparent"}
-            />
+            {item.session.likes_count >= HYPE_THRESHOLD ? (
+              <Sparkle
+                size={24}
+                color={item.session.has_liked ? "#fbbf24" : "#666"}
+                fill={item.session.has_liked ? "#fbbf24" : "transparent"}
+              />
+            ) : (
+              <Flame
+                size={24}
+                color={item.session.has_liked ? "#f97316" : "#666"}
+                fill={item.session.has_liked ? "#f97316" : "transparent"}
+              />
+            )}
             {item.session.likes_count > 0 && (
-              <Text style={[styles.likeCount, item.session.has_liked && styles.likeCountActive]}>
-                {item.session.likes_count}
+              <Text
+                style={[
+                  styles.sparkCount,
+                  item.session.has_liked && styles.sparkCountActive,
+                  item.session.likes_count >= HYPE_THRESHOLD && styles.sparkCountHype,
+                ]}
+              >
+                {item.session.likes_count} Sparks
               </Text>
             )}
           </TouchableOpacity>
@@ -315,18 +331,21 @@ const styles = StyleSheet.create({
     borderTopColor: "#2a2a2a",
     marginTop: 8,
   },
-  likeButton: {
+  sparkButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     padding: 8,
   },
-  likeCount: {
+  sparkCount: {
     fontSize: 16,
     fontWeight: "600" as const,
     color: "#666",
   },
-  likeCountActive: {
-    color: "#ef4444",
+  sparkCountActive: {
+    color: "#f97316",
+  },
+  sparkCountHype: {
+    color: "#fbbf24",
   },
 });

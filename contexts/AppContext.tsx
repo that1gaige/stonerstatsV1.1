@@ -1,7 +1,7 @@
 import createContextHook from "@nkzw/create-context-hook";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { SmokeSession, Strain, User } from "@/types";
+import { SmokeSession, Strain, User, StrainCard } from "@/types";
 import { router } from "expo-router";
 
 const STORAGE_KEYS = {
@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   USER: "stonerstats_user",
   STRAINS: "stonerstats_strains",
   SESSIONS: "stonerstats_sessions",
+  CARDS: "stonerstats_cards",
 };
 
 const DEFAULT_USER: User = {
@@ -30,6 +31,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const [user, setUser] = useState<User>(DEFAULT_USER);
   const [strains, setStrains] = useState<Strain[]>([]);
   const [sessions, setSessions] = useState<SmokeSession[]>([]);
+  const [cards, setCards] = useState<StrainCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -65,11 +67,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const loadData = async () => {
     try {
-      const [token, userData, strainsData, sessionsData] = await Promise.all([
+      const [token, userData, strainsData, sessionsData, cardsData] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN),
         AsyncStorage.getItem(STORAGE_KEYS.USER),
         AsyncStorage.getItem(STORAGE_KEYS.STRAINS),
         AsyncStorage.getItem(STORAGE_KEYS.SESSIONS),
+        AsyncStorage.getItem(STORAGE_KEYS.CARDS),
       ]);
 
       if (token) {
@@ -100,6 +103,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
         }));
         setSessions(sessionsWithDates);
       }
+
+      if (cardsData) {
+        const parsed = JSON.parse(cardsData);
+        const cardsWithDates = parsed.map((c: StrainCard) => ({
+          ...c,
+          obtained_at: new Date(c.obtained_at),
+        }));
+        setCards(cardsWithDates);
+      }
     } catch (error) {
       console.error("Failed to load data:", error);
     } finally {
@@ -126,11 +138,26 @@ export const [AppProvider, useApp] = createContextHook(() => {
     await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated));
   }, [user]);
 
+  const addCard = useCallback(async (card: StrainCard) => {
+    const updated = [...cards, card];
+    setCards(updated);
+    await AsyncStorage.setItem(STORAGE_KEYS.CARDS, JSON.stringify(updated));
+    console.log(`Added card: ${card.card_name}`);
+  }, [cards]);
+
+  const addCards = useCallback(async (newCards: StrainCard[]) => {
+    const updated = [...cards, ...newCards];
+    setCards(updated);
+    await AsyncStorage.setItem(STORAGE_KEYS.CARDS, JSON.stringify(updated));
+    console.log(`Added ${newCards.length} cards`);
+  }, [cards]);
+
   return useMemo(() => ({
     authToken,
     user,
     strains,
     sessions,
+    cards,
     isLoading,
     isAuthenticated,
     setAuthToken,
@@ -138,7 +165,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
     addStrain,
     addSession,
     updateUser,
-  }), [authToken, user, strains, sessions, isLoading, isAuthenticated, setAuthToken, logout, addStrain, addSession, updateUser]);
+    addCard,
+    addCards,
+  }), [authToken, user, strains, sessions, cards, isLoading, isAuthenticated, setAuthToken, logout, addStrain, addSession, updateUser, addCard, addCards]);
 });
 
 

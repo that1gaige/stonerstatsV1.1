@@ -140,3 +140,33 @@ export interface Follow {
   followee_id: string;
   created_at: Date;
 }
+
+export type CardRarity = "common" | "uncommon" | "rare" | "epic" | "legendary" | "mythic";
+
+export type CardArtVariant = "base" | "foil" | "terp" | "heritage" | "cosmic" | "seasonal";
+
+export interface StrainCard {
+  card_id: string;
+  strain_id: string;
+  card_name: string;
+  card_number: string;
+  set_name: string;
+  rarity: CardRarity;
+  art_variant: CardArtVariant;
+  obtained_at: Date;
+  is_favorited: boolean;
+}
+
+export type PostType = "session" | "card";
+
+export interface FeedPost {
+  post_id: string;
+  user_id: string;
+  post_type: PostType;
+  session_id?: string;
+  card_id?: string;
+  caption?: string;
+  created_at: Date;
+  sparks_count: number;
+  has_sparked: boolean;
+}
