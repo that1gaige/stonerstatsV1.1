@@ -109,6 +109,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
         const cardsWithDates = parsed.map((c: StrainCard) => ({
           ...c,
           obtained_at: new Date(c.obtained_at),
+          shader: c.shader || "standard_leaf_tint",
+          sparks_count: c.sparks_count || 0,
         }));
         setCards(cardsWithDates);
       }

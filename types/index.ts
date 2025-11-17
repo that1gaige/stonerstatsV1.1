@@ -145,6 +145,26 @@ export type CardRarity = "common" | "uncommon" | "rare" | "epic" | "legendary" |
 
 export type CardArtVariant = "base" | "foil" | "terp" | "heritage" | "cosmic" | "seasonal";
 
+export type CardShaderType = 
+  | "standard_leaf_tint"
+  | "high_contrast_pop"
+  | "velvet_soft_glow"
+  | "vaporwave_gradient"
+  | "vintage_muted"
+  | "terp_color_bend"
+  | "holo_sparkle"
+  | "gold_foil"
+  | "cosmic_holo"
+  | "ripplewave_foil"
+  | "crystal_shine"
+  | "static_grain_holo"
+  | "neon_pulse_foil"
+  | "legacy_edition"
+  | "420_edition"
+  | "deep_forest"
+  | "summer_citrus"
+  | "mythic_cosmic_rift";
+
 export interface StrainCard {
   card_id: string;
   strain_id: string;
@@ -153,8 +173,10 @@ export interface StrainCard {
   set_name: string;
   rarity: CardRarity;
   art_variant: CardArtVariant;
+  shader: CardShaderType;
   obtained_at: Date;
   is_favorited: boolean;
+  sparks_count?: number;
 }
 
 export type PostType = "session" | "card";

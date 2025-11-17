@@ -1,4 +1,5 @@
-import { StrainCard, CardRarity, CardArtVariant, Strain } from "@/types";
+import { StrainCard, CardRarity, CardArtVariant, Strain, CardShaderType } from "@/types";
+import { getShaderForCard } from "@/constants/cardShaders";
 
 const RARITIES: CardRarity[] = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
 const ART_VARIANTS: CardArtVariant[] = ["base", "foil", "terp", "heritage", "cosmic", "seasonal"];
@@ -66,17 +67,21 @@ export function generateCardsForStrain(
     const cardNumber = generateCardNumber(setPrefix, baseCardNumber + i);
     
     const variantName = artVariant === "base" ? "" : ` - ${capitalize(artVariant)}`;
+    const cardId = generateCardId();
+    const shader = getShaderForCard(rarity, artVariant, cardId + strain.strain_id);
     
     cards.push({
-      card_id: generateCardId(),
+      card_id: cardId,
       strain_id: strain.strain_id,
       card_name: `${strain.name}${variantName}`,
       card_number: cardNumber,
       set_name: "Set A1 – First Print",
       rarity,
       art_variant: artVariant,
+      shader,
       obtained_at: new Date(),
       is_favorited: false,
+      sparks_count: 0,
     });
   }
   

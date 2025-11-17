@@ -2,6 +2,7 @@ import { useApp } from "@/contexts/AppContext";
 import { Strain, StrainType, TerpProfile, StrainCard as StrainCardType, CardRarity } from "@/types";
 import { StrainIcon } from "@/components/StrainIcon";
 import { StrainCard } from "@/components/StrainCard";
+import { FullCardView } from "@/components/FullCardView";
 import { createStrain } from "@/utils/iconGenerator";
 import { getStrainIcon } from "@/constants/icons";
 import { EXPLORE_STRAINS_DATA } from "@/constants/exploreStrains";
@@ -24,7 +25,17 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from "react-native";
-import { Search, Plus, Check, Camera, Upload, X, Sparkles } from "lucide-react-native";
+import {
+  Search,
+  Plus,
+  Check,
+  Camera,
+  Upload,
+  X,
+  Sparkles,
+  Grid,
+  List,
+} from "lucide-react-native";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 
@@ -66,6 +77,8 @@ export default function LibraryScreen() {
   const [newTerps, setNewTerps] = useState<Set<TerpProfile>>(new Set());
   const [cardSearchQuery, setCardSearchQuery] = useState("");
   const [selectedRarities, setSelectedRarities] = useState<Set<CardRarity>>(new Set());
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [selectedCard, setSelectedCard] = useState<{ card: StrainCardType, strain: Strain } | null>(null);
 
   useEffect(() => {
     if (bannerText) {
@@ -425,6 +438,13 @@ IMPORTANT:
     return [...strains, ...ALL_STRAINS].find(s => s.strain_id === card.strain_id);
   };
 
+  const handleCardPress = (card: StrainCardType) => {
+    const strain = getStrainForCard(card);
+    if (strain) {
+      setSelectedCard({ card, strain });
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.tabBar}>
@@ -564,19 +584,44 @@ IMPORTANT:
       ) : (
         <>
           <View style={styles.cardStats}>
-            <Text style={styles.cardStatsText}>You own {filteredCards.length} cards</Text>
-            <Text style={styles.cardStatsSubtext}>Set A1: {cards.length} cards collected</Text>
+            <View style={styles.cardStatsInfo}>
+              <Text style={styles.cardStatsText}>You own {filteredCards.length} cards</Text>
+              <Text style={styles.cardStatsSubtext}>Set A1: {cards.length} cards collected</Text>
+            </View>
+            <View style={styles.viewToggle}>
+              <TouchableOpacity
+                style={[styles.viewButton, viewMode === "list" && styles.viewButtonActive]}
+                onPress={() => setViewMode("list")}
+              >
+                <List size={20} color={viewMode === "list" ? "#0a0a0a" : "#666"} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.viewButton, viewMode === "grid" && styles.viewButtonActive]}
+                onPress={() => setViewMode("grid")}
+              >
+                <Grid size={20} color={viewMode === "grid" ? "#0a0a0a" : "#666"} />
+              </TouchableOpacity>
+            </View>
           </View>
           <FlatList
             data={filteredCards}
             renderItem={({ item }) => {
               const strain = getStrainForCard(item);
               if (!strain) return null;
-              return <StrainCard card={item} strain={strain} compact />;
+              return (
+                <StrainCard
+                  card={item}
+                  strain={strain}
+                  compact={viewMode === "list"}
+                  onPress={() => handleCardPress(item)}
+                />
+              );
             }}
             keyExtractor={(item) => item.card_id}
             contentContainerStyle={styles.listContent}
-            numColumns={1}
+            numColumns={viewMode === "grid" ? 2 : 1}
+            key={viewMode}
+            columnWrapperStyle={viewMode === "grid" ? styles.gridRow : undefined}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Sparkles size={48} color="#333" />
@@ -587,6 +632,14 @@ IMPORTANT:
               </View>
             }
           />
+          {selectedCard && (
+            <FullCardView
+              card={selectedCard.card}
+              strain={selectedCard.strain}
+              visible={true}
+              onClose={() => setSelectedCard(null)}
+            />
+          )}
         </>
       )}
 
@@ -1192,12 +1245,18 @@ const styles = StyleSheet.create({
     color: "#888",
   },
   cardStats: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: "#1a1a1a",
     marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: 12,
+  },
+  cardStatsInfo: {
+    flex: 1,
     gap: 4,
   },
   cardStatsText: {
@@ -1208,5 +1267,24 @@ const styles = StyleSheet.create({
   cardStatsSubtext: {
     fontSize: 13,
     color: "#888",
+  },
+  viewToggle: {
+    flexDirection: "row",
+    borderRadius: 10,
+    backgroundColor: "#0a0a0a",
+    padding: 4,
+    gap: 4,
+  },
+  viewButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "transparent",
+  },
+  viewButtonActive: {
+    backgroundColor: "#4ade80",
+  },
+  gridRow: {
+    gap: 12,
   },
 });
