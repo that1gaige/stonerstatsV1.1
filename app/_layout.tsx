@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AppProvider } from "@/contexts/AppContext";
 import { trpc, trpcClient } from "@/lib/trpc";
@@ -26,12 +26,21 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [isConnected, setIsConnected] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const handleConnectionSuccess = () => {
     console.log('[App] Connection established successfully');
     setIsConnected(true);
     SplashScreen.hideAsync();
   };
+
+  if (!isHydrated) {
+    return null;
+  }
 
   if (!isConnected) {
     return <ConnectionLoader onConnectionSuccess={handleConnectionSuccess} />;
