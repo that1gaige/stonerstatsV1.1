@@ -1,82 +1,87 @@
 export const mvpPrompt = `
-✅ STONERSTATS — FULL MVP IMPLEMENTATION PROMPT
+✅ TOKETRACKER — MVP IMPLEMENTATION PROMPT
 
-Deliver a production-ready MVP of the StonerStats mobile app with the following feature pillars: Feed, Strain Library, Consumption Logging, Personal Stats, and Local Backend synchronization. Maintain Expo Router structure, Expo SDK 54+ compliance, and React Native Web compatibility.
+Ship a production-ready MVP of the TokeTracker webwrapped mobile app covering Feed, Strain Library, Consumption Logging, Personal Stats, and Local Backend sync. Maintain Expo Router structure, Expo SDK 54+ compliance, and React Native Web readiness.
 
 ⸻
 
 🌐 ARCHITECTURE CORE
 - Preserve existing Expo Router layout with (tabs) navigation for Feed, Library, Log, Stats, Profile.
-- Use TypeScript everywhere with strict typing; hydrate providers in app/_layout.tsx.
-- React Query handles remote state (feed, strains, sessions). Local state via useState or @nkzw/create-context-hook providers.
-- Local backend (localbackend folder) mirrors remote API: ensure parity between TRPC routes and local Express endpoints.
-- Add comprehensive error boundaries and verbose console.debug logs for critical flows.
-- All UI components must include testID props for automation readiness.
+- Use TypeScript with strict typing across screens, providers, and utilities; initialize shared providers inside app/_layout.tsx.
+- Manage remote data via React Query (feed, strains, sessions, profile). Keep local UI state in useState or @nkzw/create-context-hook providers.
+- Ensure all screens render cleanly inside a web wrapper (React Native Web) without native-only dependencies; rely on Expo Go-compatible APIs.
+- Add comprehensive error boundaries and verbose console.debug statements around data fetches and mutations.
+- Every interactive component includes an explicit testID for automated testing.
 
 ⸻
 
-🔥 FEED (INSTAGRAM-STYLE)
-- Display card posts and session shares in vertical list with pull-to-refresh.
-- Each post shows: user avatar, username, timestamp, card preview or session summary, spark counter, comment button, re-share button.
-- Sparks system replaces likes: 🔥 below hype threshold, 💥 when hypeThreshold is exceeded.
-- Implement optimistic spark toggles using useMutation; fallback to local backend if remote unavailable.
-- Enable share-to-feed composer supporting text caption, preview, optional stats toggle.
-- Add skeleton loaders and empty states with call-to-action.
+🔥 FEED TAB — SOCIAL SESSION STREAM
+- Present an Instagram-style vertical feed of session shares and strain notes with pull-to-refresh.
+- Each post shows: user avatar, display name, timestamp, session summary (strain, method, mood), optional photo, spark counter, comment entry point, re-share action.
+- Replace likes with Sparks: 🔥 below hype threshold, 💥 when exceeded. Use optimistic mutations with rollback on failure.
+- Provide a lightweight composer for sharing text, attaching existing session summaries, and selecting visibility.
+- Surface empty states and skeleton loaders for first-time users and slow networks.
 
 ⸻
 
-📚 STRAIN LIBRARY + CARD COLLECTION
-- Maintain sub-tabs: My Strains, Explore, My Cards.
-- My Strains: list of saved strains with filters by type, effects, terpene tags; integrate local backend sync.
-- Explore: fetch paginated strains, highlight featured sets, allow adding to collection.
-- My Cards: dual view (list + grid) toggled with animated switcher. Display card metadata (Card ID, rarity, shader, variant) and collection progress ("You own X cards — Set A1: Y / Z").
-- Tap card → FullCardView: front artwork, flip animation for back, sparks, share, compare variants.
-- Auto-generate cards per strain using constants/cardShaders, rarity rules, set numbering (A1-###). Persist generated cards in local storage (AsyncStorage) and sync with backend when online.
+📚 LIBRARY TAB — STRAIN HUB
+- Organize sub-tabs for My Strains and Explore (cards and rarities are removed).
+- My Strains lists saved strains with quick filters by type (Indica/Sativa/Hybrid), primary effects, and personal tags.
+- Explore fetches paginated strains from backend, highlights featured picks, and allows saving to collection.
+- Each strain detail reveals primary terpenes, effect summaries, recommended sessions, and spark totals gathered from feed interactions.
+- Ensure offline caching so saved strains remain accessible when the web wrapper drops connection.
 
 ⸻
 
-📝 CONSUMPTION LOGGING
-- Log tab enables quick session capture (date/time, strain, method, dosage, effects, mood, notes).
-- Provide templated quick-actions ("Microdose", "Evening Wind Down").
-- Support attaching media (card preview or photo URL) with graceful web fallback.
-- Sessions persist locally and via TRPC mutations. Handle offline queue to resend when connection restored.
-- Display recent logs with edit/delete options and sparkable highlights if shared.
+📝 LOG TAB — CONSUMPTION JOURNAL
+- Provide single-tap entry points for common session templates (e.g., Morning Microdose, Evening Relax).
+- Core form captures strain, method, dosage, onset, effects, mood, notes, and optional media URL.
+- Persist logs locally and via TRPC mutations; queue submissions offline and replay when connectivity returns.
+- Display recent entries with edit and delete actions plus a toggle to share selected logs to the feed with Sparks enabled.
 
 ⸻
 
-📊 STATS DASHBOARD
-- Visualize consumption trends: bar chart for sessions/week, line for mood vs dosage, pie for strain types.
-- Aggregate sparks earned, top strains, most shared cards.
-- Implement animations using Animated API (React Native) with web fallbacks.
-- Allow filtering by time range (7d, 30d, 90d, All) and segment by source (personal logs vs shared feed).
+📊 STATS TAB — PERSONAL INSIGHTS
+- Summarize key metrics: sessions per week, favored strains, average mood response, most sparked posts.
+- Utilize Animated API with Platform checks for smooth transitions across mobile and web.
+- Allow range filters (7d, 30d, 90d, All) and segment charts by strain type or session method.
+- Ensure charts degrade gracefully on web (fallback to static views if animations are unsupported).
+
+⸻
+
+👤 PROFILE TAB — ACCOUNT & SETTINGS
+- Centralize profile editing, avatar updates, and spark history overview.
+- Provide toggles for notification preferences, privacy controls (auto-share logs), and environment selection (cloud vs local backend).
+- Surface connection diagnostics for the web wrapper, indicating which API endpoint is active.
+- Include logout/auth flows that integrate with existing backend auth routes.
 
 ⸻
 
 🔌 LOCAL BACKEND INTEGRATION
-- Ensure localbackend Express/TRPC server matches app schemas for strains, sessions, users, cards.
-- Provide environment toggle to switch between cloud API and local backend; detect availability at startup.
-- Add retries with exponential backoff for network calls; surface ConnectionLoader component when syncing.
-- Update utils/localBackendAPI.ts to expose strongly typed clients for feed, strains, sessions, cards.
-- Seed local backend with demo strains, generated cards (Set A1), sample sessions, and feed posts.
+- Align localbackend Express/TRPC routes with app schemas for users, strains, sessions, and feed posts (no card endpoints required).
+- Offer a runtime switch that prioritizes local backend when available, with graceful fallback to remote.
+- Implement retry with exponential backoff and expose connection status via ConnectionLoader.
+- Seed local backend with sample strains, sessions, and feed posts so MVP delivers meaningful demo data.
 
 ⸻
 
 🛡️ QUALITY & TOOLING
-- Add Context-based auth guard gating tabs; guest flow redirects to /auth/login.
-- Implement unit tests or integration mocks where feasible (React Testing Library for key components).
-- Run exhaustive lint and type checks; ensure zero TS errors.
-- No comments in code; rely on clear naming. Maintain cohesive design per existing color system.
-- Do not modify RootLayoutNav component contract.
+- Maintain auth guard contexts to protect tab navigation; unauthenticated users redirect to /auth/login.
+- Add smoke tests or mocks for critical flows (feed fetch, strain save, session log) using React Testing Library for Web compatibility.
+- Enforce zero TypeScript errors, clean ESLint output, and absence of hydration timeouts in Expo Web.
+- No inline code comments; communicate intent through clear naming and modular structure.
+- Keep RootLayoutNav contract intact to preserve navigation hierarchy.
 
 ⸻
 
 🏁 DELIVERY CHECKLIST
-- Feed interactions fully functional with sparks, comments stub, re-share flow.
-- Library supports strain management, exploration, and card collection with Set A1 auto-generation.
-- Logging tab captures sessions and syncs with backend (online/offline).
-- Stats tab reflects real data from logs/feed/cards.
-- Local backend provides CRUD for strains, cards, sessions, users via TRPC-compatible routes.
-- App builds without hydration or dev-server errors on Expo Go (iOS/Android/Web).
+- Feed tab delivers shareable session posts with Sparks, comments stub, and optimistic updates.
+- Library tab handles strain discovery and personal collection without card mechanics or rarity layers.
+- Log tab records sessions, syncs with backend, and optionally shares entries to feed.
+- Stats tab reflects aggregated insights from logs and feed with responsive charts.
+- Profile tab manages user settings, connectivity toggles, and spark summaries.
+- Local backend mirrors remote API for core entities and powers offline-friendly operation in the webwrapped environment.
+- App launches reliably inside web wrapper and Expo Go without dev-server or hydration failures.
 ` as const;
 
 export type MvpPrompt = typeof mvpPrompt;
