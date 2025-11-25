@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AppProvider } from "@/contexts/AppContext";
-import { trpc, trpcClient } from "@/lib/trpc";
+import { trpc, createTRPCClient } from "@/lib/trpc";
 import { AuthGuard } from "@/components/AuthGuard";
 import { ConnectionLoader } from "@/components/ConnectionLoader";
 
@@ -27,27 +27,31 @@ function RootLayoutNav() {
 export default function RootLayout() {
   const [isConnected, setIsConnected] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [backendUrl, setBackendUrl] = useState<string | null>(null);
+  const [trpcClientInstance, setTrpcClientInstance] = useState<ReturnType<typeof createTRPCClient> | null>(null);
 
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
-  const handleConnectionSuccess = () => {
-    console.log('[App] Connection established successfully');
+  const handleConnectionSuccess = useCallback((url: string) => {
+    console.log('[App] Connection established successfully at', url);
+    setBackendUrl(url);
+    setTrpcClientInstance(createTRPCClient(url));
     setIsConnected(true);
     SplashScreen.hideAsync();
-  };
+  }, []);
 
   if (!isHydrated) {
     return null;
   }
 
-  if (!isConnected) {
+  if (!isConnected || !trpcClientInstance || !backendUrl) {
     return <ConnectionLoader onConnectionSuccess={handleConnectionSuccess} />;
   }
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+    <trpc.Provider client={trpcClientInstance} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <AppProvider>
           <AuthGuard>

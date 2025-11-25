@@ -9,14 +9,14 @@ export const SERVER_OPTIONS: ServerOption[] = [
   {
     id: 'local',
     name: 'Local Server',
-    url: 'http://192.168.1.100:3001',
-    description: 'Your computer IP'
+    url: 'http://192.168.0.100:4000',
+    description: 'Your computer IP on WiFi'
   },
   {
     id: 'localhost',
     name: 'Localhost',
-    url: 'http://localhost:3001',
-    description: 'Testing only'
+    url: 'http://localhost:4000',
+    description: 'For simulators only'
   }
 ];
 

@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, TouchableOpacity } from 'react-native';
 import { LOCALBACKEND_CONFIG, SERVER_OPTIONS, setLocalBackendUrl, ServerOption } from '@/constants/localBackendConfig';
 
 interface ConnectionLoaderProps {
-  onConnectionSuccess: () => void;
+  onConnectionSuccess: (baseUrl: string) => void;
 }
 
 export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps) {
@@ -49,7 +49,7 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
       duration: 500,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [fadeValue, pulseValue, spinValue]);
 
   const spin = spinValue.interpolate({
     inputRange: [0, 1],
@@ -63,10 +63,10 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
     setShowServerOptions(false);
     setLastError(null);
     setCountdown(0);
-    setAttemptCount(1);
+    setAttemptCount((prev) => prev + 1);
   };
 
-  const checkConnection = async () => {
+  const checkConnection = useCallback(async () => {
     console.log(`[ConnectionLoader] ========== Attempt ${attemptCount} ==========`);
     console.log('[ConnectionLoader] Server URL:', LOCALBACKEND_CONFIG.BASE_URL);
     console.log('[ConnectionLoader] Full health check URL:', `${LOCALBACKEND_CONFIG.BASE_URL}/api/health`);
@@ -102,7 +102,8 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
             try {
               const data = JSON.parse(xhr.responseText);
               resolve({ success: true, data, status: xhr.status });
-            } catch (e) {
+            } catch (parseError) {
+              console.error('[ConnectionLoader] Failed to parse health response', parseError);
               resolve({ success: false, error: 'Invalid JSON response', status: xhr.status });
             }
           } else {
@@ -131,7 +132,7 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
       if (result.success) {
         console.log('[ConnectionLoader] ✅ Connected successfully:', result.data);
         setLastError(null);
-        onConnectionSuccess();
+        onConnectionSuccess(LOCALBACKEND_CONFIG.BASE_URL);
       } else {
         console.error('[ConnectionLoader] ❌ Connection failed:', result.error);
         setLastError(result.error || 'Connection failed');
@@ -146,7 +147,7 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
       setLastError(errorMsg);
       scheduleRetry();
     }
-  };
+  }, [attemptCount, onConnectionSuccess]);
 
   const scheduleRetry = () => {
     console.log('[ConnectionLoader] Scheduling retry in 10 seconds...');
@@ -170,7 +171,7 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
 
   useEffect(() => {
     checkConnection();
-  }, [attemptCount]);
+  }, [checkConnection]);
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeValue }]}>

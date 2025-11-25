@@ -11,6 +11,9 @@ The StonerStats app now has a complete local backend server that can be run on W
 Navigate to the `localbackend` folder and:
 
 **Option A: Double-click `start_server.bat`** (easiest)
+- Installs dependencies on first run
+- Auto-detects your LAN IP and updates `constants/localBackendConfig.ts`
+- Boots the API on port 4000
 
 **Option B: Manual start**
 ```bash
@@ -23,21 +26,12 @@ The server will start on port 4000 and display your local IP address.
 
 ### 2. Configure the App
 
-#### For Local Development (Same Computer)
-Use the default configuration in `constants/localBackendConfig.ts`:
-```typescript
-BASE_URL: 'http://localhost:4000'
-```
+`start_server.bat` keeps `constants/localBackendConfig.ts` in sync with your current IP, so Expo automatically points at the right server. If you ever need to override manually (for example, when testing on a simulator), update the helper in `constants/localBackendConfig.ts` or choose a different option inside the in-app Connection Loader.
 
-#### For Mobile Devices (Same WiFi Network)
-Find your computer's local IP address:
-- Windows: Run `ipconfig` and look for IPv4 Address (e.g., 192.168.1.100)
-
-Then update the BASE_URL:
+For manual overrides:
 ```typescript
 import { setLocalBackendUrl } from '@/constants/localBackendConfig';
 
-// In your app initialization
 setLocalBackendUrl('http://192.168.1.100:4000');
 ```
 
