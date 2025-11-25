@@ -15,7 +15,7 @@ export const SERVER_OPTIONS: ServerOption[] = [
     {
     id: 'Laptop',
     name: 'Local Server',
-    url: 'http://192.168.0.100:4000',
+    url: 'http://192.168.10.224:4000',
     description: 'Your laptop IP on WiFi'
   },
   {
