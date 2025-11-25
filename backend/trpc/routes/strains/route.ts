@@ -22,7 +22,7 @@ export const createStrainProcedure = protectedProcedure
       strain_id: strainId,
       name: input.name,
       type: input.type,
-      terp_profile: input.terp_profile,
+      terp_profile: input.terp_profile as any,
       breeder: input.breeder,
       description: input.description,
       icon_seed: input.icon_seed,
@@ -32,7 +32,7 @@ export const createStrainProcedure = protectedProcedure
       source: "user" as const,
     };
 
-    db.createStrain(strain);
+    db.createStrain(strain as any);
 
     console.log("Strain created:", strainId, input.name);
 

@@ -83,7 +83,14 @@ export default function FeedScreen() {
           <StrainIcon
             params={item.strain.icon_render_params}
             size={40}
-            baseLeafSource={getStrainIcon(item.strain)}
+            baseLeafSource={getStrainIcon({
+              strain_id: item.strain.strain_id,
+              name: item.strain.name,
+              type: item.strain.type,
+              icon_render_params: item.strain.icon_render_params,
+              icon_seed: item.strain.icon_seed || '',
+              created_at: item.strain.created_at,
+            })}
             fillSeedUUID={item.strain.strain_id}
           />
           <View style={styles.strainDetails}>

@@ -39,6 +39,8 @@ export const signupProcedure = publicProcedure
       password_hash: passwordHash,
       display_name: input.displayName,
       handle: input.handle,
+      avatar_url: undefined,
+      bio: undefined,
       created_at: new Date().toISOString(),
       following_user_ids: [],
       preferences: {

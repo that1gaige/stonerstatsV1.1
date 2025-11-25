@@ -5,6 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey-change-in-productio
 export interface JWTPayload {
   userId: string;
   exp: number;
+  [key: string]: unknown;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -22,7 +23,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export async function generateToken(userId: string): Promise<string> {
-  const payload: JWTPayload = {
+  const payload = {
     userId,
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
   };
@@ -32,7 +33,10 @@ export async function generateToken(userId: string): Promise<string> {
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
     const payload = await verify(token, JWT_SECRET);
-    return payload as JWTPayload;
+    if (payload && typeof payload === 'object' && 'userId' in payload) {
+      return payload as JWTPayload;
+    }
+    return null;
   } catch {
     return null;
   }

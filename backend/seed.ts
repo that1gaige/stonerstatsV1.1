@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { EXPLORE_STRAINS_DATA } from "@/constants/exploreStrains";
 import { hashPassword } from "./auth";
-import { getIconRenderParams } from "@/utils/iconGenerator";
+import { generateIconParams } from "@/utils/iconGenerator";
 
 export async function seedDatabase() {
   console.log("[Seed] Starting database seed...");
@@ -71,18 +71,17 @@ export async function seedDatabase() {
   
   for (const strainData of demoStrains) {
     const strainId = `strain_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const { seed, params } = generateIconParams(strainData.name, strainData.type, strainData.terp_profile as any);
     
     db.createStrain({
       strain_id: strainId,
       name: strainData.name,
       type: strainData.type,
-      thc_percentage: 20 + Math.random() * 10,
-      cbd_percentage: Math.random() * 2,
       terp_profile: strainData.terp_profile as any,
       description: strainData.description,
-      icon_render_params: getIconRenderParams(strainData.type),
+      icon_seed: seed,
+      icon_render_params: params,
       created_at: new Date().toISOString(),
-      created_by_user_id: demoUserId1,
     });
   }
 
@@ -112,7 +111,7 @@ export async function seedDatabase() {
       mood_before: Math.floor(Math.random() * 3) + 2,
       mood_after: Math.floor(Math.random() * 2) + 4,
       effects_tags: effects.sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 3)),
-      notes: `Great ${strain.type} experience with ${strain.name}. Really enjoyed the ${strain.terp_profile[0]} notes.`,
+      notes: `Great ${strain.type} experience with ${strain.name}. ${strain.terp_profile ? `Really enjoyed the ${strain.terp_profile[0]} notes.` : ''}`,
       photo_urls: [],
       created_at: new Date(Date.now() - (i * 4 * 60 * 60 * 1000)).toISOString(),
       likes: [],

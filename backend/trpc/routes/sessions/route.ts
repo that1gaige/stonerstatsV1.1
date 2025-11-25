@@ -102,6 +102,8 @@ export const getFeedProcedure = protectedProcedure.query(async ({ ctx }) => {
             name: strain.name,
             type: strain.type,
             icon_render_params: strain.icon_render_params,
+            icon_seed: strain.icon_seed || '',
+            created_at: new Date(strain.created_at),
           }
         : null,
     };
