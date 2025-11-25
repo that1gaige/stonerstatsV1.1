@@ -7,10 +7,16 @@ export interface ServerOption {
 
 export const SERVER_OPTIONS: ServerOption[] = [
   {
-    id: 'local',
+    id: 'PC',
     name: 'Local Server',
     url: 'http://192.168.0.100:4000',
     description: 'Your computer IP on WiFi'
+  },
+    {
+    id: 'Laptop',
+    name: 'Local Server',
+    url: 'http://192.168.0.100:4000',
+    description: 'Your laptop IP on WiFi'
   },
   {
     id: 'localhost',
