@@ -27,21 +27,23 @@ console.log(`New IP: ${newIP}:${serverPort}`);
 try {
   let content = fs.readFileSync(configPath, 'utf8');
 
-  const localBlockRegex = /(id:\s*'local'[\s\S]*?url:\s*')http:\/\/[^']+(')/;
-  const match = content.match(localBlockRegex);
+  const pcBlockRegex = /(id:\s*'PC'[\s\S]*?url:\s*')http:\/\/[^']+(')/;
+  const match = content.match(pcBlockRegex);
 
   if (match) {
     const updatedUrl = `http://${newIP}:${serverPort}`;
-    content = content.replace(localBlockRegex, `$1${updatedUrl}$2`);
+    content = content.replace(pcBlockRegex, `$1${updatedUrl}$2`);
 
     fs.writeFileSync(configPath, content, 'utf8');
 
     console.log('✅ Updated successfully!');
-    console.log(`   Updated Local Server URL -> ${updatedUrl}`);
+    console.log(`   Updated PC Server URL -> ${updatedUrl}`);
     console.log('\n📱 Restart your Expo app to use the new IP.');
+    console.log('\n💡 Tip: Your device must be on the same WiFi network as this computer.');
   } else {
-    console.log('⚠️  Could not find Local Server block in config file.');
-    console.log('   Please update manually in constants/localBackendConfig.ts');
+    console.log('⚠️  Could not find PC Server block in config file.');
+    console.log('   Manually update the "PC" entry in constants/localBackendConfig.ts');
+    console.log(`   Set url to: http://${newIP}:${serverPort}`);
   }
 } catch (error) {
   console.error('❌ Error updating config:', error.message);

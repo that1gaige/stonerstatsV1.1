@@ -28,6 +28,28 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo.
 
+if not exist "package.json" (
+    echo [INFO] Creating package.json...
+    (
+        echo {
+        echo   "name": "toketracker-localbackend",
+        echo   "version": "1.0.0",
+        echo   "main": "index.js",
+        echo   "dependencies": {
+        echo     "express": "^4.18.2",
+        echo     "cors": "^2.8.5",
+        echo     "body-parser": "^1.20.2",
+        echo     "bcryptjs": "^2.4.3",
+        echo     "uuid": "^9.0.0",
+        echo     "@trpc/server": "^10.45.0",
+        echo     "zod": "^3.22.4"
+        echo   }
+        echo }
+    ) > package.json
+    echo [OK] package.json created
+    echo.
+)
+
 if not exist "node_modules" (
     echo [INFO] Installing dependencies...
     call npm install

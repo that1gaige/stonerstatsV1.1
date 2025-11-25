@@ -90,8 +90,8 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
         const xhr = new XMLHttpRequest();
         const timeout = setTimeout(() => {
           xhr.abort();
-          resolve({ success: false, error: 'Connection timeout (15s) - server not responding. Make sure server is running and device is on same WiFi.' });
-        }, 15000);
+          resolve({ success: false, error: 'Connection timeout (30s) - server not responding. Check: 1) Server is running 2) Device on same WiFi 3) IP address is correct' });
+        }, 30000);
 
         xhr.onload = () => {
           clearTimeout(timeout);
@@ -150,8 +150,8 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
   }, [attemptCount, onConnectionSuccess]);
 
   const scheduleRetry = () => {
-    console.log('[ConnectionLoader] Scheduling retry in 10 seconds...');
-    setCountdown(10);
+    console.log('[ConnectionLoader] Scheduling retry in 15 seconds...');
+    setCountdown(15);
     
     const countdownInterval = setInterval(() => {
       setCountdown((prev) => {
@@ -166,7 +166,7 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
     setTimeout(() => {
       clearInterval(countdownInterval);
       setAttemptCount((prev) => prev + 1);
-    }, 10000);
+    }, 15000);
   };
 
   useEffect(() => {
@@ -244,22 +244,33 @@ export function ConnectionLoader({ onConnectionSuccess }: ConnectionLoaderProps)
           <View style={styles.errorContainer}>
             <Text style={styles.errorTitle}>Connection Failed</Text>
             <Text style={styles.errorMessage}>{lastError}</Text>
-            {countdown > 0 && (
-              <Text style={styles.retryText}>
-                Retrying in {countdown} second{countdown !== 1 ? 's' : ''}...
-              </Text>
-            )}
+            {countdown > 0 ? (
+              <>
+                <Text style={styles.retryText}>
+                  Auto-retry in {countdown} second{countdown !== 1 ? 's' : ''}...
+                </Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={() => {
+                    setCountdown(0);
+                    setAttemptCount((prev) => prev + 1);
+                  }}
+                >
+                  <Text style={styles.retryButtonText}>Retry Now</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
           </View>
         )}
 
         <View style={styles.helpContainer}>
           <Text style={styles.helpTitle}>Troubleshooting:</Text>
-          <Text style={styles.helpText}>• Ensure your server is running (check server console)</Text>
-          <Text style={styles.helpText}>• ⚠️ Web preview will NOT work - use Expo Go app on mobile</Text>
-          <Text style={styles.helpText}>• Scan QR code with Expo Go app on your phone</Text>
-          <Text style={styles.helpText}>• Ensure phone is on same WiFi as computer</Text>
-          <Text style={styles.helpText}>• Server IP: {LOCALBACKEND_CONFIG.BASE_URL}</Text>
-          <Text style={styles.helpText}>• Update IP in constants/localBackendConfig.ts if needed</Text>
+          <Text style={styles.helpText}>1. Run localbackend/start_server.bat on your PC</Text>
+          <Text style={styles.helpText}>2. ⚠️ Web preview will NOT work - use mobile device</Text>
+          <Text style={styles.helpText}>3. Open Expo Go app and scan the QR code</Text>
+          <Text style={styles.helpText}>4. Ensure phone is on SAME WiFi as PC</Text>
+          <Text style={styles.helpText}>5. Server URL: {LOCALBACKEND_CONFIG.BASE_URL}</Text>
+          <Text style={styles.helpText}>6. If wrong IP, run: node update-server-ip.js</Text>
         </View>
       </View>
 
@@ -476,6 +487,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#888',
     fontWeight: '600' as const,
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: '#4ade80',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#0a0a0a',
   },
   helpContainer: {
     backgroundColor: '#0f0f0f',
